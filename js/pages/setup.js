@@ -26,6 +26,7 @@ export function Setup() {
   const installed = p.standalone;
   const signedIn = Boolean(s.session);
   const pinging = p.permission === 'granted';
+  const joined = Boolean(s.household);
   const url = 'mattiasisa.github.io/rise-and-fizz';
 
   return html`
@@ -33,7 +34,7 @@ export function Setup() {
       <${Blobs} items=${[{ c: 'pink', x: '50%', y: '40px', s: 280 }, { c: 'teal', x: '-90px', y: '700px', s: 260 }, { c: 'dots', x: '55%', y: '1300px', s: 240 }]} />
       <div class="topbar"><a href=${signedIn ? '#/settings' : '#/'}>← BACK</a><span>SETUP GUIDE</span></div>
       <h1 class="h-display">Starter<br/><i>pack</i></h1>
-      <span style="font-size:17px;line-height:1.4">Everything you need to get Rise & Fizz rising on your phone. Four steps, about three minutes, no flour required.</span>
+      <span style="font-size:17px;line-height:1.4">Everything you need to get Rise & Fizz rising on your phone. Five steps, about three minutes, no flour required.</span>
 
       <div class="stack" style="gap:6px">
         <span class="kicker">I'm setting up on</span>
@@ -68,11 +69,21 @@ export function Setup() {
         <${Step} n="1">In the app, tap <b>New account</b>.<//>
         <${Step} n="2">Type your email and a password (at least 8 characters), then tap <b>Create my kitchen</b>.<//>
         <${Step} n="3">If it asks you to confirm, open the email from <b>Supabase</b> (check spam), tap the link once, then go back to the app and <b>Sign in</b>.${dev === 'iphone' ? ' The link opens Safari; that\'s fine, just return to the home screen app afterwards.' : ''}<//>
-        <span class="small" style="font-weight:700">Sharing a kitchen? Once signed in, go to <b>Settings → Shared kitchen → I have a code</b>, type your name and the code you were sent, and tap <b>Join kitchen</b>.</span>
+      </section>
+
+      <section class="card y stack" style="gap:12px">
+        <div class="row between"><span class="kicker" style="color:var(--yellow)">Step 3</span><${Done} ok=${joined} label="In the kitchen" /></div>
+        <span class="big-num" style="font-size:36px;line-height:.95;color:var(--yellow)">Share the dough</span>
+        <span style="font-weight:500">Join the shared kitchen so you both see every loaf, batch and starter.</span>
+        <${Step} n="1">Get the <b>6-letter invite code</b> from whoever started the kitchen. They'll find it under <b>Settings → Shared kitchen</b>.<//>
+        <${Step} n="2">In the app, go to <b>Settings → Shared kitchen → I have a code</b>.<//>
+        <${Step} n="3">Type <b>your name</b> (it becomes your name tag) and the code, then tap <b>Join kitchen</b>.<//>
+        <span class="small muted">Everything gets a name tag, so you can see whose sourdough is whose. Either of you can tick off a fold or log a taste. Reminders go to whoever owns the thing, unless you tick <b>Ping me for everyone's reminders</b>.</span>
+        ${signedIn && html`<a href="#/settings" class="btn y" style="margin-top:4px">Go to Shared kitchen →</a>`}
       </section>
 
       <section class="slab p tilt-l stack" style="gap:12px">
-        <div class="row between"><span class="kicker">Step 3</span><${Done} ok=${pinging} label="Pings on" /></div>
+        <div class="row between"><span class="kicker">Step 4</span><${Done} ok=${pinging} label="Pings on" /></div>
         <span class="big-num" style="font-size:36px;line-height:.95">Let it ping</span>
         <span style="font-weight:500">So the app can tell you when to fold, feed, taste and burp, even when it's closed.</span>
         ${dev === 'iphone' && html`<span class="small" style="font-weight:700">iPhone needs iOS 16.4 or newer, and the app must be opened from the home screen icon (step 1).</span>`}
@@ -83,7 +94,7 @@ export function Setup() {
       </section>
 
       <section class="card y stack" style="gap:10px">
-        <span class="kicker" style="color:var(--yellow)">Step 4</span>
+        <span class="kicker" style="color:var(--yellow)">Step 5</span>
         <span class="h2">Knead to know</span>
         ${dev === 'iphone' && html`
           <span>• If pings stop, check <b>Settings → Notifications → Rise & Fizz</b>, and that a Focus mode isn't hiding them.</span>
