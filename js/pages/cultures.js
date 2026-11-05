@@ -28,8 +28,8 @@ function AddCulture({ open, onClose }) {
         <button type="button" class=${'chip w' + (location === 'counter' ? ' on' : '')} onClick=${() => { setLocation('counter'); setEvery(12); }}>On the counter</button>
         <button type="button" class=${'chip w' + (location === 'fridge' ? ' on' : '')} onClick=${() => { setLocation('fridge'); setEvery(168); }}>In the fridge</button>
       </div>
-      <div class="field"><label for="ce">Feed every (hours)</label><input id="ce" class="input" type="number" value=${every} onInput=${(e) => setEvery(Number(e.target.value) || 12)} /></div>`}
-    <button class="btn fill-y" disabled=${!name.trim()} onClick=${async () => { await createCulture({ kind, name: name.trim(), location, feedEveryHours: every }); onClose(); toast('Added ' + name.trim()); }}>Add</button>
+      <div class="field"><label for="ce">Feed every (hours)</label><input id="ce" class="input" type="number" inputmode="decimal" min="1" value=${every} onInput=${(e) => setEvery(e.target.value)} /></div>`}
+    <button class="btn fill-y" disabled=${!name.trim() || (kind === 'starter' && !(Number(every) > 0))} onClick=${async () => { await createCulture({ kind, name: name.trim(), location, feedEveryHours: Number(every) || 12 }); onClose(); toast('Added ' + name.trim()); }}>Add</button>
   <//>`;
 }
 

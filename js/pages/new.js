@@ -49,6 +49,8 @@ export function BreadForm({ from, edit }) {
   const setFlour = (i, k) => (e) => { const flours = spec.flours.map((f, j) => (j === i ? { ...f, [k]: k === 'g' ? num(e.target.value) : e.target.value } : f)); setSpec({ ...spec, flours }); };
   const n = breadNumbers(spec);
   const steps = breadSchedule(spec, new Date(start));
+  const filled = (v) => v !== '' && v != null && !Number.isNaN(Number(v));
+  const valid = spec.flours.every((f) => filled(f.g)) && ['water', 'starter', 'salt', 'temp', 'autolyseMin', 'folds', 'foldEveryMin', 'retardHours', 'targetRise'].every((k) => filled(spec[k]));
 
   const save = async () => {
     setBusy(true);
@@ -126,7 +128,8 @@ export function BreadForm({ from, edit }) {
         <span class="stack" style="gap:0"><b>Ping me at every step</b><span class="small muted">Push notification, even when the app is closed</span></span>
       </label>
 
-      <button class="btn fill-y block" disabled=${busy} onClick=${save}>${busy ? 'Saving…' : edit ? 'Save changes' : 'Start bake →'}</button>
+      ${!valid && html`<span class="small" style="color:var(--pink-text)">Fill in every number to continue.</span>`}
+      <button class="btn fill-y block" disabled=${busy || !valid} onClick=${save}>${busy ? 'Saving…' : edit ? 'Save changes' : 'Start bake →'}</button>
     </div>`;
 }
 
@@ -143,6 +146,7 @@ export function KombuchaForm({ from, edit }) {
   const setVol = (e) => { const v = Number(e.target.value); setSpec({ ...spec, volume: v }); setRecipe(kombuchaRecipe(v)); };
   const setR = (k) => (e) => setRecipe({ ...recipe, [k]: num(e.target.value) });
   const days = f1Days(spec.temp);
+  const kValid = ['sugar', 'teaG', 'starterMl', 'waterL'].every((k) => recipe[k] !== '' && !Number.isNaN(Number(recipe[k])));
   const steps = kombuchaSchedule(spec, new Date(start));
   const note = spec.temp < 21 ? 'A bit cool. Expect a slower brew.' : spec.temp > 28 ? 'Warm. Check it often, it can turn sour fast.' : 'A good range is roughly 21–28 °C.';
 
@@ -209,6 +213,7 @@ export function KombuchaForm({ from, edit }) {
         <span class="stack" style="gap:0"><b>Ping me for tastes and burps</b><span class="small muted">Push notification, even when the app is closed</span></span>
       </label>
 
-      <button class="btn fill-t block" disabled=${busy} onClick=${save}>${busy ? 'Saving…' : edit ? 'Save changes' : 'Start batch →'}</button>
+      ${!kValid && html`<span class="small" style="color:var(--pink-text)">Fill in every recipe number to continue.</span>`}
+      <button class="btn fill-t block" disabled=${busy || !kValid} onClick=${save}>${busy ? 'Saving…' : edit ? 'Save changes' : 'Start batch →'}</button>
     </div>`;
 }

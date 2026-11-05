@@ -168,8 +168,8 @@ function KombuchaActive({ p, s, now }) {
       <div class="card t stack">
         <span class="h2">Ready for F2? Pick flavours</span>
         <div class="row wrap">${['Ginger', 'Raspberry', 'Lemon', 'Blueberry', 'Mint', 'Apple juice', 'Mango', 'Hibiscus'].map((f) => html`<button type="button" class=${'chip t' + (flavors.includes(f) ? ' on' : '')} aria-pressed=${flavors.includes(f)} onClick=${() => toggle(f)}>${f}</button>`)}</div>
-        <div class="field"><label for="f2d">F2 days in bottles</label><input id="f2d" class="input" type="number" min="1" max="7" value=${f2Days} onInput=${(e) => setF2Days(Number(e.target.value) || 3)} /></div>
-        <button class="btn fill-t" onClick=${async () => { await api.bottleForF2(p, { flavors, days: f2Days }); toast('Bottled! Burp reminders are on.'); }}>Bottle for F2 · burp pings on</button>
+        <div class="field"><label for="f2d">F2 days in bottles</label><input id="f2d" class="input" type="number" min="1" max="7" inputmode="numeric" value=${f2Days} onInput=${(e) => setF2Days(e.target.value)} /></div>
+        <button class="btn fill-t" disabled=${!(Number(f2Days) >= 1)} onClick=${async () => { await api.bottleForF2(p, { flavors, days: Math.round(Number(f2Days)) }); toast('Bottled! Burp reminders are on.'); }}>Bottle for F2 · burp pings on</button>
       </div>`}
 
     ${p.stage !== 'f1' && html`
