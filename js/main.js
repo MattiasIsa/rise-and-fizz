@@ -1,5 +1,4 @@
-import { Component } from 'preact';
-import { html, render, useState, useEffect, useApp } from './html.js';
+import { html, render, Component, useState, useEffect, useApp } from './html.js';
 import { Nav } from './components.js';
 import { init, clearError } from './lib/api.js';
 import { Home } from './pages/home.js';

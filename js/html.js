@@ -1,8 +1,8 @@
-import { html, render } from 'htm/preact';
-import { useState, useEffect, useMemo, useRef, useCallback } from 'preact/hooks';
+// One self-contained bundle of Preact + hooks + htm, so there is only ever one copy of Preact.
+import { html, render, Component, useState, useEffect, useMemo, useRef, useCallback } from 'htm/preact';
 import { getState, subscribe } from './lib/api.js';
 
-export { html, render, useState, useEffect, useMemo, useRef, useCallback };
+export { html, render, Component, useState, useEffect, useMemo, useRef, useCallback };
 
 export function useApp() {
   const [s, setS] = useState(getState());

@@ -1,5 +1,5 @@
 // Rise & Fizz service worker: offline app shell + push notifications.
-const VERSION = 'rf-v2';
+const VERSION = 'rf-v3';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './css/app.css',
   './js/main.js', './js/config.js', './js/html.js', './js/components.js',
@@ -21,7 +21,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;
   const ownFile = url.origin === self.location.origin;
-  const cdn = url.hostname === 'esm.sh' || url.hostname.endsWith('fonts.googleapis.com') || url.hostname.endsWith('fonts.gstatic.com');
+  const cdn = url.hostname === 'esm.sh' || url.hostname === 'cdn.jsdelivr.net' || url.hostname.endsWith('fonts.googleapis.com') || url.hostname.endsWith('fonts.gstatic.com');
   if (!ownFile && !cdn) return;
   e.respondWith(
     fetch(e.request).then((res) => {
