@@ -62,8 +62,22 @@ async function run(fn) {
 
 // ---------- Auth ----------
 export const signIn = (email) => store.signIn(email);
-export async function verifyCode(email, token) {
-  const { error } = await store.client.auth.verifyOtp({ email, token, type: 'email' });
+const redirect = () => window.location.origin + window.location.pathname;
+export async function signInPassword(email, password) {
+  const { error } = await store.client.auth.signInWithPassword({ email, password });
+  if (error) throw new Error(error.message);
+}
+export async function signUp(email, password) {
+  const { data, error } = await store.client.auth.signUp({ email, password, options: { emailRedirectTo: redirect() } });
+  if (error) throw new Error(error.message);
+  return { needsConfirm: !data.session };
+}
+export async function resetPassword(email) {
+  const { error } = await store.client.auth.resetPasswordForEmail(email, { redirectTo: redirect() + '#/settings' });
+  if (error) throw new Error(error.message);
+}
+export async function setPassword(password) {
+  const { error } = await store.client.auth.updateUser({ password });
   if (error) throw new Error(error.message);
 }
 export const signOut = async () => { await store.signOut(); set({ session: null, needsLogin: true }); };

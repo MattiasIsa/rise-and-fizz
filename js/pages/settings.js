@@ -1,46 +1,62 @@
 import { html, useState, useApp, toast } from '../html.js';
 import { Blobs } from '../components.js';
-import { signIn, verifyCode, signOut, getStore, resetDemo, serverTestPing } from '../lib/api.js';
+import { signIn, signInPassword, signUp, resetPassword, setPassword, signOut, getStore, resetDemo, serverTestPing } from '../lib/api.js';
 import { pushSupport, enablePush, testNotification } from '../lib/push.js';
 
 export function Login() {
+  const [mode, setMode] = useState('signin'); // signin | signup | link
   const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
-  const [code, setCode] = useState('');
+  const [pw, setPw] = useState('');
+  const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
-  const go = async (e) => {
+  const act = async (e) => {
     e.preventDefault();
-    setBusy(true);
-    try { await signIn(email.trim()); setSent(true); } catch (err) { toast('Could not send: ' + err.message); } finally { setBusy(false); }
+    setBusy(true); setMsg('');
+    try {
+      if (mode === 'signin') await signInPassword(email.trim(), pw);
+      else if (mode === 'signup') { const r = await signUp(email.trim(), pw); if (r.needsConfirm) setMsg('Almost there! Open the email from Supabase and tap the confirm link once. Then come back here and sign in.'); }
+      else { await signIn(email.trim()); setMsg('Check your email and click the sign-in link. Best on a laptop: on iPhone, use a password instead.'); }
+    } catch (err) {
+      toast(err.message.includes('Invalid login') ? 'Wrong email or password' : err.message);
+    } finally { setBusy(false); }
   };
-  const check = async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    try { await verifyCode(email.trim(), code.trim()); } catch (err) { toast('That code didn\'t work: ' + err.message); } finally { setBusy(false); }
+  const forgot = async () => {
+    if (!email.trim()) { toast('Type your email first'); return; }
+    try { await resetPassword(email.trim()); setMsg('We emailed you a link. Open it, then set a new password in Settings.'); } catch (err) { toast(err.message); }
   };
+  const tab = (id, label) => html`<button type="button" class=${'chip w' + (mode === id ? ' on' : '')} aria-pressed=${mode === id} onClick=${() => { setMode(id); setMsg(''); }}>${label}</button>`;
   return html`
     <div class="main">
-      <${Blobs} items=${[{ c: 'pink', x: '45%', y: '80px', s: 300 }, { c: 'teal', x: '-80px', y: '420px', s: 260 }, { c: 'dots', x: '60%', y: '560px', s: 220 }]} />
-      <div style="height:6vh"></div>
+      <${Blobs} items=${[{ c: 'pink', x: '45%', y: '80px', s: 300 }, { c: 'teal', x: '-80px', y: '460px', s: 260 }, { c: 'dots', x: '60%', y: '640px', s: 220 }]} />
+      <div style="height:5vh"></div>
       <h1 class="h-display">Rise<br/><i>& fizz</i></h1>
       <span class="muted">Your sourdough and kombucha, tracked. Sign in to sync across your phone and laptop.</span>
-      ${sent ? html`
-        <div class="slab y tilt-l stack"><span class="big-num" style="font-size:30px">Check your email</span><span>We sent a sign-in email to <b>${email}</b>. Type the code from it below. On a laptop you can also just click the link.</span></div>
-        <form class="stack" onSubmit=${check}>
-          <div class="field"><label for="code">Code from the email</label><input id="code" class="input" inputmode="numeric" autocomplete="one-time-code" maxlength="10" value=${code} onInput=${(e) => setCode(e.target.value.replace(/\s/g, ''))} style="font-size:24px;letter-spacing:0.3em;text-align:center" /></div>
-          <button class="btn fill-y block" disabled=${busy || code.length < 6}>${busy ? 'Checking…' : 'Sign in'}</button>
-        </form>
-        <button class="btn y" onClick=${() => { setSent(false); setCode(''); }}>Use another email</button>` : html`
-        <form class="stack" onSubmit=${go}>
-          <div class="field"><label for="em">Email</label><input id="em" class="input" type="email" required autocomplete="email" value=${email} onInput=${(e) => setEmail(e.target.value)} /></div>
-          <button class="btn fill-y block" disabled=${busy || !email}>${busy ? 'Sending…' : 'Send me a sign-in link'}</button>
-          <span class="small muted">No password needed. We email you a code.</span>
-        </form>`}
+      <div class="row wrap" role="group" aria-label="Sign-in method">${tab('signin', 'Sign in')}${tab('signup', 'New account')}${tab('link', 'Email link')}</div>
+      ${msg && html`<div class="slab y tilt-l"><span style="font-weight:500">${msg}</span></div>`}
+      <form class="stack" onSubmit=${act}>
+        <div class="field"><label for="em">Email</label><input id="em" class="input" type="email" required autocomplete="email" value=${email} onInput=${(e) => setEmail(e.target.value)} /></div>
+        ${mode !== 'link' && html`<div class="field"><label for="pw">Password${mode === 'signup' ? ' (at least 8 characters)' : ''}</label><input id="pw" class="input" type="password" required minlength=${mode === 'signup' ? 8 : 1} autocomplete=${mode === 'signup' ? 'new-password' : 'current-password'} value=${pw} onInput=${(e) => setPw(e.target.value)} /></div>`}
+        <button class="btn fill-y block" disabled=${busy || !email || (mode !== 'link' && pw.length < (mode === 'signup' ? 8 : 1))}>${busy ? 'One sec…' : mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Create my kitchen' : 'Email me a sign-in link'}</button>
+        ${mode === 'signin' && html`<button type="button" class="btn" style="color:var(--muted);border:0" onClick=${forgot}>Forgot password?</button>`}
+      </form>
       <a href="#/setup" class="card t row between" style="text-decoration:none;color:inherit;margin-top:8px">
         <span class="stack" style="gap:2px"><b>New here? Grab the Starter pack</b><span class="small muted">Install, sign in and notifications, step by step</span></span>
         <span aria-hidden="true" style="color:var(--teal-text);font-size:22px">→</span>
       </a>
     </div>`;
+}
+
+function PasswordCard() {
+  const [pw, setPw] = useState('');
+  const [busy, setBusy] = useState(false);
+  return html`<section class="card stack">
+    <span class="kicker" style="color:var(--yellow)">Password</span>
+    <span class="small muted">Set or change the password you sign in with.</span>
+    <div class="row">
+      <input class="input" type="password" aria-label="New password" placeholder="New password (8+ characters)" autocomplete="new-password" value=${pw} onInput=${(e) => setPw(e.target.value)} />
+      <button class="btn sm y" disabled=${busy || pw.length < 8} onClick=${async () => { setBusy(true); try { await setPassword(pw); setPw(''); toast('Password saved'); } catch (e) { toast(e.message); } finally { setBusy(false); } }}>Save</button>
+    </div>
+  </section>`;
 }
 
 export function Settings() {
@@ -69,6 +85,7 @@ export function Settings() {
           <span>Demo mode. Data is saved in this browser only.</span>
           <button class="btn y" onClick=${async () => { await resetDemo(); toast('Demo data reset'); }}>Reset demo data</button>`}
       </section>
+      ${s.mode === 'supabase' && s.session && html`<${PasswordCard} />`}
 
       <section class="card p stack">
         <span class="kicker" style="color:var(--pink-text)">Notifications</span>

@@ -64,10 +64,10 @@ export function Setup() {
       <section class="slab t tilt-r stack" style="gap:12px">
         <div class="row between"><span class="kicker">Step 2</span><${Done} ok=${signedIn} label="Signed in" /></div>
         <span class="big-num" style="font-size:36px;line-height:.95">Wake the starter</span>
-        <span style="font-weight:500">Sign in with your email. No password, no account form.</span>
-        <${Step} n="1">Type your email and tap <b>Send me a sign-in link</b>.<//>
-        <${Step} n="2">Open the email from <b>Supabase</b> (check spam the first time).<//>
-        <${Step} n="3">${dev === 'laptop' ? html`Click the link, or type the code from the email into the app.` : html`Type the <b>code</b> from the email into the app. ${dev === 'iphone' ? 'Use the code, not the link: the link opens Safari, which is a separate login from the home screen app.' : 'The code is safest; the link may open a different browser.'}`}<//>
+        <span style="font-weight:500">Make your own account with an email and a password.</span>
+        <${Step} n="1">In the app, tap <b>New account</b>.<//>
+        <${Step} n="2">Type your email and a password (at least 8 characters), then tap <b>Create my kitchen</b>.<//>
+        <${Step} n="3">If it asks you to confirm, open the email from <b>Supabase</b> (check spam), tap the link once, then go back to the app and <b>Sign in</b>.${dev === 'iphone' ? ' The link opens Safari; that\'s fine, just return to the home screen app afterwards.' : ''}<//>
         <span class="small" style="font-weight:500">Everyone gets their own kitchen: your bakes, batches and starters are private to your email.</span>
       </section>
 
