@@ -1,5 +1,5 @@
 // Rise & Fizz service worker: offline app shell + push notifications.
-const VERSION = 'rf-v3';
+const VERSION = 'rf-v4';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './css/app.css',
   './js/main.js', './js/config.js', './js/html.js', './js/components.js',
@@ -23,8 +23,10 @@ self.addEventListener('fetch', (e) => {
   const ownFile = url.origin === self.location.origin;
   const cdn = url.hostname === 'esm.sh' || url.hostname === 'cdn.jsdelivr.net' || url.hostname.endsWith('fonts.googleapis.com') || url.hostname.endsWith('fonts.gstatic.com');
   if (!ownFile && !cdn) return;
+  // Our own files always revalidate with the server, so an update never mixes old and new files.
+  const req = ownFile ? new Request(e.request, { cache: 'no-cache' }) : e.request;
   e.respondWith(
-    fetch(e.request).then((res) => {
+    fetch(req).then((res) => {
       if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(e.request, copy)); }
       return res;
     }).catch(() => caches.match(e.request).then((m) => m || caches.match('./index.html')))
