@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
         else console.error('push failed', code, (e as Error).message);
       }
     }
-    await db.from('reminders').update({ notified_at: now.toISOString() }).eq('id', r.id);
+    await db.from('reminders').update(r.kind === 'test' ? { notified_at: now.toISOString(), done_at: now.toISOString() } : { notified_at: now.toISOString() }).eq('id', r.id);
   }
   return Response.json({ sent, reminders: due.length });
 });

@@ -76,7 +76,15 @@ class Boundary extends Component {
 }
 
 render(html`<${Boundary}><${App} /><//>`, document.getElementById('app'));
-init();
+init().then(async () => {
+  // If notifications are already allowed, make sure the server knows about this device.
+  const { getState, getStore } = await import('./lib/api.js');
+  const { enablePush } = await import('./lib/push.js');
+  const st = getState();
+  if (st.mode === 'supabase' && st.session && 'Notification' in window && Notification.permission === 'granted') {
+    enablePush(getStore()).catch((e) => console.warn('Push registration failed', e));
+  }
+});
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch((e) => console.warn('SW failed', e)));

@@ -258,5 +258,10 @@ export async function newFact(kind = 'fact') {
   return run(() => store.insert('facts', { kind, text }));
 }
 
+// Real end-to-end test: the server sends this within about a minute, even if the app is closed.
+export function serverTestPing() {
+  return run(() => store.insert('reminders', { kind: 'test', title: 'Test from Rise & Fizz', detail: 'Server notifications work. Bubbles incoming!', due_at: new Date().toISOString(), idx: 0, notify: true }));
+}
+
 export function clearError() { set({ error: null }); }
 export async function resetDemo() { if (store.kind === 'local') { await store.resetAll(); await seedDemo(store); await refresh(); } }

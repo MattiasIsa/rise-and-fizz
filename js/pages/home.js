@@ -16,7 +16,7 @@ function reminderStyle(r, projects, cultures) {
 
 export function upcoming(reminders, now, hours = 48) {
   return reminders
-    .filter((r) => !r.done_at && new Date(r.due_at).getTime() < now + hours * TIME.HOUR)
+    .filter((r) => !r.done_at && r.kind !== 'test' && new Date(r.due_at).getTime() < now + hours * TIME.HOUR)
     .sort((a, b) => new Date(a.due_at) - new Date(b.due_at));
 }
 

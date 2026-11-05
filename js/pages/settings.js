@@ -1,6 +1,6 @@
 import { html, useState, useApp, toast } from '../html.js';
 import { Blobs } from '../components.js';
-import { signIn, signOut, getStore, resetDemo } from '../lib/api.js';
+import { signIn, signOut, getStore, resetDemo, serverTestPing } from '../lib/api.js';
 import { pushSupport, enablePush, testNotification } from '../lib/push.js';
 
 export function Login() {
@@ -56,8 +56,10 @@ export function Settings() {
         <span class="kicker" style="color:var(--pink-text)">Notifications</span>
         ${p.permission === 'granted' ? html`
           <span>Notifications are on for this device.</span>
-          <button class="btn p" onClick=${() => testNotification().catch((e) => toast(e.message))}>Send a test</button>
-          ${s.mode === 'supabase' && html`<button class="btn" style="color:var(--muted)" disabled=${busy} onClick=${enable}>Re-register this device</button>`}` : p.needsInstall ? html`
+          <button class="btn p" onClick=${() => testNotification().catch((e) => toast(e.message))}>Test on this phone</button>
+          ${s.mode === 'supabase' && html`
+            <button class="btn fill-p" disabled=${busy} onClick=${async () => { setBusy(true); try { await enablePush(store); await serverTestPing(); toast('Sent! Close the app; it should arrive within a minute.'); } catch (e) { toast(e.message); } finally { setBusy(false); } }}>Test from the server</button>
+            <span class="small muted">The server test is the real one: it's how fold and feed reminders reach you when the app is closed.</span>`}` : p.needsInstall ? html`
           <span><b>On iPhone, install the app first:</b> tap the Share button, choose <b>Add to Home Screen</b>, then open Rise & Fizz from your home screen and come back here.</span>` : !p.hasApi ? html`
           <span>This browser doesn't support push notifications. Try Chrome, Edge, Firefox or Safari.</span>` : p.permission === 'denied' ? html`
           <span>Notifications are blocked. Allow them for this site in your browser or phone settings, then reload.</span>` : html`
