@@ -5,6 +5,7 @@ import { Home } from './pages/home.js';
 import { NewChooser, BreadForm, KombuchaForm } from './pages/new.js';
 import { ProjectDetail } from './pages/detail.js';
 import { Cultures } from './pages/cultures.js';
+import { CultureDetail } from './pages/culture.js';
 import { History } from './pages/history.js';
 import { Stats } from './pages/stats.js';
 import { Settings, Login } from './pages/settings.js';
@@ -32,8 +33,8 @@ function Page({ path, query, s }) {
   if (parts.length === 0) return html`<${Home} />`;
   if (parts[0] === 'new') {
     const from = query.get('from') ? byId(query.get('from')) : null;
-    if (parts[1] === 'bread') return html`<${BreadForm} key=${'nb' + (from ? from.id : '')} from=${from} />`;
-    if (parts[1] === 'kombucha') return html`<${KombuchaForm} key=${'nk' + (from ? from.id : '')} from=${from} />`;
+    if (parts[1] === 'bread') return html`<${BreadForm} key=${'nb' + (from ? from.id : '')} from=${from} culture=${query.get('culture')} />`;
+    if (parts[1] === 'kombucha') return html`<${KombuchaForm} key=${'nk' + (from ? from.id : '')} from=${from} culture=${query.get('culture')} />`;
     return html`<${NewChooser} />`;
   }
   if (parts[0] === 'p' && parts[1]) {
@@ -42,6 +43,7 @@ function Page({ path, query, s }) {
     return html`<${ProjectDetail} id=${parts[1]} />`;
   }
   if (parts[0] === 'history') return parts[1] ? html`<${ProjectDetail} id=${parts[1]} back="#/history" />` : html`<${History} />`;
+  if (parts[0] === 'c' && parts[1]) return html`<${CultureDetail} id=${parts[1]} />`;
   if (parts[0] === 'cultures') return html`<${Cultures} query=${query} />`;
   if (parts[0] === 'stats') return html`<${Stats} />`;
   if (parts[0] === 'settings') return html`<${Settings} />`;

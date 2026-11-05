@@ -282,6 +282,11 @@ async function feedCultureRaw(cultureId, data) {
   await store.insert('reminders', { culture_id: cultureId, kind: 'feed', title: `Feed ${c.name}`, detail: c.location === 'fridge' ? 'Weekly fridge feed' : `Peaks about ${peak.toFixed(1)} h after a feed`, due_at: next.toISOString(), idx: 0, notify: true });
 }
 export function feedCulture(cultureId, data) { return run(() => feedCultureRaw(cultureId, data)); }
+// Other moments in a culture's life: 'peak' ({hours}), 'baby' (new SCOBY), 'note' ({text}).
+export function logCultureEvent(cultureId, type, data = {}, at = new Date()) {
+  return run(() => store.insert('culture_events', { culture_id: cultureId, type, at: new Date(at).toISOString(), data }));
+}
+export function removeCultureEvent(id) { return run(() => store.remove('culture_events', id)); }
 
 // ---------- Facts ----------
 export async function newFact(kind = 'fact') {

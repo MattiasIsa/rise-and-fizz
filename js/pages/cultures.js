@@ -34,13 +34,22 @@ function AddCulture({ open, onClose }) {
   <//>`;
 }
 
-function FeedSheet({ c, onClose }) {
-  const [ratioText, setRatioText] = useState('1:2:2');
+// The most recent feed with real amounts, so the next feed starts from the same numbers.
+export function lastFeed(c, events) {
+  if (!c) return null;
+  return events.find((e) => e.culture_id === c.id && e.type === 'feed' && e.data && Number(e.data.starter) > 0) || null;
+}
+
+export function FeedSheet({ c, onClose }) {
+  const s = useApp();
+  const prev = lastFeed(c, s.cultureEvents);
+  const pd = (prev && prev.data) || {};
+  const [ratioText, setRatioText] = useState(pd.ratioText || '1:2:2');
   const [ratioMode, setRatioMode] = useState('user'); // 'user' = ratio drives grams, 'auto' = grams drive ratio
-  const [typed, setTyped] = useState({ s: '', f: '', w: '' });
+  const [typed, setTyped] = useState({ s: pd.starter ? String(Math.round(pd.starter)) : '', f: '', w: '' });
   const [last, setLast] = useState('s');
-  const [temp, setTemp] = useState(21);
-  const [flour, setFlour] = useState('');
+  const [temp, setTemp] = useState(Number(pd.temp) || 21);
+  const [flour, setFlour] = useState(pd.flour || '');
   if (!c) return null;
   const scoby = c.kind === 'scoby';
   const calc = solveFeed(typed, ratioText, last);
@@ -72,6 +81,7 @@ function FeedSheet({ c, onClose }) {
         <input class="input" aria-label="Custom ratio" inputmode="decimal" value=${ratioShown} onInput=${(e) => pickRatio(e.target.value)} onFocus=${() => { if (ratioMode === 'auto' && calc.actualText) { setRatioText(calc.actualText); setRatioMode('user'); } }} style=${'flex:1;min-width:110px;' + (ratioMode === 'auto' ? 'border-color:var(--teal);color:var(--teal-text)' : '')} />
       </div>
       <div class="grid-3">${gramBox('s', 'Starter')}${gramBox('f', 'Flour')}${gramBox('w', 'Water')}</div>
+      ${prev && typed.s === String(Math.round(pd.starter)) && !typed.f && !typed.w && html`<span class="small" style="color:var(--teal-text)">Same as last time (${Math.round(pd.starter)} + ${Math.round(pd.flourGrams || 0)} + ${Math.round(pd.water || 0)} g). Change any number to adjust.</span>`}
       <div class=${'card' + (ratioMode === 'auto' ? ' t' : '')} style="padding:10px 12px;display:flex;flex-direction:column;gap:4px">
         ${calc.complete ? html`
           <span class="kicker" style="font-size:11px">${ratioMode === 'auto' ? 'Your ratio' : 'Feeding'} <span style="color:var(--yellow)">${calc.actualText}</span>${calc.hydration != null ? html` · <span style="color:var(--teal-text)">${Math.round(calc.hydration * 100)}% hydration</span>` : ''}</span>
@@ -117,18 +127,21 @@ export function Cultures({ query }) {
         const accent = scoby ? 't' : c.location === 'fridge' ? 'p' : 'y';
         return html`
           <div class=${'card row ' + accent} style="gap:16px;align-items:center">
-            <${Jar} type=${scoby ? 'tea' : 'bread'} fill=${scoby ? 70 : c.location === 'fridge' ? 30 : 46} activity=${scoby ? 80 : c.location === 'fridge' ? 10 : hungry ? 25 : 60} w=${70} h=${92} label=${c.name} />
+            <a href=${'#/c/' + c.id} aria-label=${'Open ' + c.name} style="display:block"><${Jar} type=${scoby ? 'tea' : 'bread'} fill=${scoby ? 70 : c.location === 'fridge' ? 30 : 46} activity=${scoby ? 80 : c.location === 'fridge' ? 10 : hungry ? 25 : 60} w=${70} h=${92} label=${c.name} /></a>
             <div class="stack" style="gap:4px;flex:1;min-width:0">
               <span class="kicker" style=${'font-size:10px;color:' + (scoby ? 'var(--teal-text)' : c.location === 'fridge' ? 'var(--pink-text)' : 'var(--yellow)')}>${scoby ? 'SCOBY · kombucha' : 'Starter · ' + c.location}</span>
-              <span class="big-num" style="font-size:28px;line-height:1">${c.name}</span><${Owner} id=${c.user_id} />
+              <a href=${'#/c/' + c.id} class="big-num" style="font-size:28px;line-height:1;color:inherit;text-decoration:none">${c.name} <span style="font-size:18px;color:var(--muted)">›</span></a><${Owner} id=${c.user_id} />
               <span class="small" style="font-weight:700">${scoby ? (uses ? `In ${uses} batches` : 'Ready for a batch') : hungry ? 'Hungry!' : `Fed ${ago(last && last.at, now)}`}</span>
               <span class="small muted">${ageDays != null ? ageDays + ' days old · ' : ''}${scoby ? (c.notes || '') : `feeds every ~${c.feed_every_hours} h${due ? ' · next ' + whenLabel(due.due_at, now) : ''}`}</span>
-              <button class=${'btn sm ' + accent} style="align-self:flex-start;margin-top:6px" onClick=${() => setFeeding(c)}>${scoby ? 'Log a check' : 'Log feed'}</button>
+              <div class="row wrap" style="gap:8px;margin-top:6px">
+                <button class=${'btn sm ' + accent} onClick=${() => setFeeding(c)}>${scoby ? 'Log a check' : 'Log feed'}</button>
+                <a class="btn sm" href=${'#/c/' + c.id} style="color:var(--muted)">Stats & more</a>
+              </div>
             </div>
           </div>`;
       })}
       <button class="btn" style="color:var(--muted);border-style:dashed;min-height:56px" onClick=${() => setAdding(true)}>+ Add a starter or SCOBY</button>
       <${AddCulture} open=${adding} onClose=${() => setAdding(false)} />
-      <${FeedSheet} c=${feeding} onClose=${() => setFeeding(null)} />
+      <${FeedSheet} key=${feeding ? feeding.id : 'none'} c=${feeding} onClose=${() => setFeeding(null)} />
     </div>`;
 }

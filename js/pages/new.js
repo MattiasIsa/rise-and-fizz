@@ -38,11 +38,11 @@ export function NewChooser() {
 const fmtStep = (iso) => `${dayLabel(iso).toUpperCase()}\n${hhmm(iso)}`;
 const num = (v) => (v === '' ? '' : Number(v));
 
-export function BreadForm({ from, edit }) {
+export function BreadForm({ from, edit, culture }) {
   const s = useApp();
   const base = edit || from;
   const starters = s.cultures.filter((c) => c.kind === 'starter');
-  const [spec, setSpec] = useState(() => ({ ...BREAD_DEFAULTS, cultureId: starters[0] ? starters[0].id : null, notify: true, ...(base ? base.specs : {}), ...(from && !edit ? { name: base.specs.name } : {}) }));
+  const [spec, setSpec] = useState(() => ({ ...BREAD_DEFAULTS, cultureId: starters[0] ? starters[0].id : null, notify: true, ...(base ? base.specs : {}), ...(from && !edit ? { name: base.specs.name } : {}), ...(culture ? { cultureId: culture } : {}) }));
   const [start, setStart] = useState(() => toLocalInput(edit ? edit.started_at : new Date()));
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setSpec({ ...spec, [k]: e.target.type === 'number' ? num(e.target.value) : e.target.value });
@@ -133,12 +133,12 @@ export function BreadForm({ from, edit }) {
     </div>`;
 }
 
-export function KombuchaForm({ from, edit }) {
+export function KombuchaForm({ from, edit, culture }) {
   const s = useApp();
   const base = edit || from;
   const scobys = s.cultures.filter((c) => c.kind === 'scoby');
   const count = s.projects.filter((p) => p.type === 'kombucha').length;
-  const [spec, setSpec] = useState(() => ({ ...KOMBUCHA_DEFAULTS, name: 'Batch #' + (count + 1), cultureId: scobys[0] ? scobys[0].id : null, notify: true, ...(base ? base.specs : {}), ...(from && !edit ? { name: 'Batch #' + (count + 1) } : {}) }));
+  const [spec, setSpec] = useState(() => ({ ...KOMBUCHA_DEFAULTS, name: 'Batch #' + (count + 1), cultureId: scobys[0] ? scobys[0].id : null, notify: true, ...(base ? base.specs : {}), ...(from && !edit ? { name: 'Batch #' + (count + 1) } : {}), ...(culture ? { cultureId: culture } : {}) }));
   const [recipe, setRecipe] = useState(() => (base && base.specs.recipe) || kombuchaRecipe(spec.volume));
   const [start, setStart] = useState(() => toLocalInput(edit ? edit.started_at : new Date()));
   const [busy, setBusy] = useState(false);

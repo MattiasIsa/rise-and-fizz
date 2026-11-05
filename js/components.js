@@ -39,7 +39,7 @@ export function Nav({ route }) {
     <nav class="nav" aria-label="Main">
       <span class="brand">Rise<br/><i>& fizz</i></span>
       <a href="#/" class=${route === '/' ? 'on' : ''}>HOME</a>
-      <a href="#/cultures" class=${on('/cultures')}>CULTURES</a>
+      <a href="#/cultures" class=${on('/cultures') || (route.startsWith('/c/') ? 'on' : '')}>CULTURES</a>
       <a href="#/new" class="plus" aria-label="Start something new">+</a>
       <a href="#/history" class=${on('/history')}>HISTORY</a>
       <a href="#/stats" class=${on('/stats')}>STATS</a>
