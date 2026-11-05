@@ -1,3 +1,4 @@
+import { Component } from 'preact';
 import { html, render, useState, useEffect, useApp } from './html.js';
 import { Nav } from './components.js';
 import { init, clearError } from './lib/api.js';
@@ -60,7 +61,22 @@ function App() {
     </div>`;
 }
 
-render(html`<${App} />`, document.getElementById('app'));
+// Shows what went wrong instead of a blank screen.
+class Boundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  componentDidCatch(error) { console.error(error); this.setState({ error }); }
+  render() {
+    const e = this.state.error;
+    if (!e) return this.props.children;
+    return html`<div class="main"><div class="card p stack">
+      <span class="h2">Oops, something broke</span>
+      <span class="small" style="font-family:var(--mono);white-space:pre-wrap;word-break:break-word">${String(e && (e.stack || e.message) || e).slice(0, 900)}</span>
+      <button class="btn fill-y" onClick=${() => { this.setState({ error: null }); location.hash = '#/'; }}>Try again</button>
+    </div></div>`;
+  }
+}
+
+render(html`<${Boundary}><${App} /><//>`, document.getElementById('app'));
 init();
 
 if ('serviceWorker' in navigator) {
