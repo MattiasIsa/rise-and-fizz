@@ -42,6 +42,7 @@ export function Nav({ route }) {
       <a href="#/new" class="plus" aria-label="Start something new">+</a>
       <a href="#/history" class=${on('/history')}>HISTORY</a>
       <a href="#/stats" class=${on('/stats')}>STATS</a>
+      <a href="#/setup" class=${on('/setup') + ' start-wide-settings'}>STARTER PACK</a>
       <a href="#/settings" class=${on('/settings') + ' start-wide-settings'}>SETTINGS</a>
       <a href="#/new" class="start-wide">+ START NEW</a>
     </nav>`;

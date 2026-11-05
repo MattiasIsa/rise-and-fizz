@@ -66,7 +66,7 @@ export function Home() {
   return html`
     <div class="main wide">
       <${Blobs} items=${[{ c: 'dots', x: '55%', y: '-60px', s: 220 }, { c: 'pink', x: '45%', y: '480px', s: 300 }, { c: 'teal', x: '-90px', y: '880px', s: 260 }]} />
-      <div class="topbar"><span>${greeting(new Date(now))}</span><a href="#/settings" aria-label="Settings">SETTINGS ⚙</a></div>
+      <div class="topbar"><span>${greeting(new Date(now))}</span><span class="row" style="gap:14px"><a href="#/setup">STARTER PACK</a><a href="#/settings" aria-label="Settings">⚙</a></span></div>
       <h1 class="h-display">Your<br/><i>kitchen</i></h1>
       ${s.mode === 'local' && html`<div class="banner">DEMO MODE · DATA STAYS ON THIS DEVICE. <a href="#/settings">CONNECT</a></div>`}
       ${s.mode === 'supabase' && push.permission === 'default' && html`<a class="banner" href="#/settings" style="text-decoration:none">TURN ON NOTIFICATIONS SO WE CAN PING YOU →</a>`}

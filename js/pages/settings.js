@@ -1,16 +1,22 @@
 import { html, useState, useApp, toast } from '../html.js';
 import { Blobs } from '../components.js';
-import { signIn, signOut, getStore, resetDemo, serverTestPing } from '../lib/api.js';
+import { signIn, verifyCode, signOut, getStore, resetDemo, serverTestPing } from '../lib/api.js';
 import { pushSupport, enablePush, testNotification } from '../lib/push.js';
 
 export function Login() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
+  const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const go = async (e) => {
     e.preventDefault();
     setBusy(true);
     try { await signIn(email.trim()); setSent(true); } catch (err) { toast('Could not send: ' + err.message); } finally { setBusy(false); }
+  };
+  const check = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    try { await verifyCode(email.trim(), code.trim()); } catch (err) { toast('That code didn\'t work: ' + err.message); } finally { setBusy(false); }
   };
   return html`
     <div class="main">
@@ -19,13 +25,21 @@ export function Login() {
       <h1 class="h-display">Rise<br/><i>& fizz</i></h1>
       <span class="muted">Your sourdough and kombucha, tracked. Sign in to sync across your phone and laptop.</span>
       ${sent ? html`
-        <div class="slab y tilt-l stack"><span class="big-num" style="font-size:30px">Check your email</span><span>We sent a sign-in link to <b>${email}</b>. Open it on this device.</span></div>
-        <button class="btn y" onClick=${() => setSent(false)}>Use another email</button>` : html`
+        <div class="slab y tilt-l stack"><span class="big-num" style="font-size:30px">Check your email</span><span>We sent a sign-in email to <b>${email}</b>. Type the code from it below. On a laptop you can also just click the link.</span></div>
+        <form class="stack" onSubmit=${check}>
+          <div class="field"><label for="code">Code from the email</label><input id="code" class="input" inputmode="numeric" autocomplete="one-time-code" maxlength="10" value=${code} onInput=${(e) => setCode(e.target.value.replace(/\s/g, ''))} style="font-size:24px;letter-spacing:0.3em;text-align:center" /></div>
+          <button class="btn fill-y block" disabled=${busy || code.length < 6}>${busy ? 'Checking…' : 'Sign in'}</button>
+        </form>
+        <button class="btn y" onClick=${() => { setSent(false); setCode(''); }}>Use another email</button>` : html`
         <form class="stack" onSubmit=${go}>
           <div class="field"><label for="em">Email</label><input id="em" class="input" type="email" required autocomplete="email" value=${email} onInput=${(e) => setEmail(e.target.value)} /></div>
           <button class="btn fill-y block" disabled=${busy || !email}>${busy ? 'Sending…' : 'Send me a sign-in link'}</button>
-          <span class="small muted">No password needed. The link logs you in.</span>
+          <span class="small muted">No password needed. We email you a code.</span>
         </form>`}
+      <a href="#/setup" class="card t row between" style="text-decoration:none;color:inherit;margin-top:8px">
+        <span class="stack" style="gap:2px"><b>New here? Grab the Starter pack</b><span class="small muted">Install, sign in and notifications, step by step</span></span>
+        <span aria-hidden="true" style="color:var(--teal-text);font-size:22px">→</span>
+      </a>
     </div>`;
 }
 
@@ -42,6 +56,10 @@ export function Settings() {
     <div class="main">
       <div class="topbar"><a href="#/">← HOME</a><span>SETTINGS</span></div>
       <h1 class="h-display">Set<i>tings</i></h1>
+      <a href="#/setup" class="slab t tilt-r row between" style="text-decoration:none">
+        <span class="stack" style="gap:2px"><span class="big-num" style="font-size:28px">Starter pack</span><span style="font-weight:500">Setup guide for new phones and new people</span></span>
+        <span aria-hidden="true" style="font-size:26px">→</span>
+      </a>
 
       <section class="card stack">
         <span class="kicker" style="color:var(--yellow)">Account</span>

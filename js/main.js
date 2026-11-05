@@ -8,6 +8,7 @@ import { Cultures } from './pages/cultures.js';
 import { History } from './pages/history.js';
 import { Stats } from './pages/stats.js';
 import { Settings, Login } from './pages/settings.js';
+import { Setup } from './pages/setup.js';
 
 function parseHash() {
   const raw = (window.location.hash || '#/').slice(1) || '/';
@@ -44,6 +45,7 @@ function Page({ path, query, s }) {
   if (parts[0] === 'cultures') return html`<${Cultures} query=${query} />`;
   if (parts[0] === 'stats') return html`<${Stats} />`;
   if (parts[0] === 'settings') return html`<${Settings} />`;
+  if (parts[0] === 'setup') return html`<${Setup} />`;
   return html`<div class="main"><div class="empty"><span class="h2">Page not found</span><a href="#/">Go home</a></div></div>`;
 }
 
@@ -51,7 +53,7 @@ function App() {
   const s = useApp();
   const { path, query } = useRoute();
   if (!s.ready) return html`<div class="boot">Rise & Fizz</div>`;
-  if (s.needsLogin) return html`<${Login} />`;
+  if (s.needsLogin) return path === '/setup' ? html`<${Setup} />` : html`<${Login} />`;
   return html`
     <div class="shell">
       <${Nav} route=${path} />

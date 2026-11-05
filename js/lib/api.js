@@ -62,6 +62,10 @@ async function run(fn) {
 
 // ---------- Auth ----------
 export const signIn = (email) => store.signIn(email);
+export async function verifyCode(email, token) {
+  const { error } = await store.client.auth.verifyOtp({ email, token, type: 'email' });
+  if (error) throw new Error(error.message);
+}
 export const signOut = async () => { await store.signOut(); set({ session: null, needsLogin: true }); };
 
 // ---------- Projects ----------
