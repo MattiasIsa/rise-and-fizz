@@ -1,1 +1,1 @@
-Read RULES.md before making any change to this repo, follow it, and update it in the same commit when a design or behaviour decision changes.
+Read rules/README.md before making any change to this repo, then the rule files it points to for the area you're changing. Follow them, and update the relevant file in the same commit when a design or behaviour decision changes.
