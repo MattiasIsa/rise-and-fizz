@@ -1,6 +1,6 @@
 import { html, render, Component, useState, useEffect, useApp } from './html.js';
 import { Nav } from './components.js';
-import { init, clearError } from './lib/api.js';
+import { init, clearError, hardReset } from './lib/api.js';
 import { Home } from './pages/home.js';
 import { NewChooser, BreadForm, KombuchaForm } from './pages/new.js';
 import { ProjectDetail } from './pages/detail.js';
@@ -50,19 +50,23 @@ function Page({ path, query, s }) {
 }
 
 // If start-up takes suspiciously long, offer a way out instead of a frozen logo.
-function Booting() {
+function Booting({ step }) {
   const [slow, setSlow] = useState(false);
   useEffect(() => { const t = setTimeout(() => setSlow(true), 8000); return () => clearTimeout(t); }, []);
-  return html`<div class="boot" style="display:flex;flex-direction:column;gap:18px;align-items:center">Rise & Fizz
-    ${slow && html`<span class="small muted" style="font-family:var(--body);font-weight:400;text-align:center;max-width:280px">Taking longer than usual. Check your connection, then</span><button class="btn y" onClick=${() => location.reload()}>Reload</button>`}
+  return html`<div class="boot" style="display:flex;flex-direction:column;gap:18px;align-items:center;padding:0 16px">Rise & Fizz
+    <span class="kicker muted">${step || 'Starting up'}…</span>
+    ${slow && html`<span class="small muted" style="font-family:var(--body);font-weight:400;text-align:center;max-width:300px">Taking longer than usual. Close any other Rise & Fizz tabs, then reload. Still stuck? Reset clears the saved login (you'll sign in again).</span>
+      <div class="row"><button class="btn y" onClick=${() => location.reload()}>Reload</button><button class="btn p" onClick=${hardReset}>Reset & reload</button></div>`}
   </div>`;
 }
 
 function App() {
   const s = useApp();
   const { path, query } = useRoute();
-  if (!s.ready) return html`<${Booting} />`;
-  if (s.needsLogin) return path === '/setup' ? html`<${Setup} />` : html`<${Login} />`;
+  // The Starter pack is a plain guide: show it straight away, signed in or not.
+  if (path === '/setup' && (!s.ready || s.needsLogin)) return html`<${Setup} />`;
+  if (!s.ready) return html`<${Booting} step=${s.bootStep} />`;
+  if (s.needsLogin) return html`<${Login} />`;
   return html`
     <div class="shell">
       <${Nav} route=${path} />

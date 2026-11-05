@@ -56,7 +56,8 @@ export function createLocalStore() {
 export async function createSupabaseStore() {
   const { createClient } = await import('@supabase/supabase-js');
   const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    // No cross-tab auth lock: an old frozen tab could otherwise hold it forever and stall start-up.
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, lock: async (_name, _timeout, fn) => fn() }
   });
   const fail = (error) => { if (error) throw new Error(error.message || String(error)); };
   return {

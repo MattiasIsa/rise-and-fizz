@@ -15,11 +15,17 @@ export const getStore = () => store;
 export function subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 function set(patch) { state = { ...state, ...patch }; listeners.forEach((fn) => fn(state)); }
 
+function withTimeout(promise, ms, what) {
+  return Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error(`Timed out while ${what}`)), ms))]);
+}
+
 export async function init() {
   try {
     if (isCloudConfigured()) {
-      store = await createSupabaseStore();
-      const session = await store.session();
+      set({ bootStep: 'Loading the database library' });
+      store = await withTimeout(createSupabaseStore(), 15000, 'loading the database library');
+      set({ bootStep: 'Checking your login' });
+      const session = await withTimeout(store.session(), 10000, 'checking your login');
       set({ mode: 'supabase', session });
       // Never call Supabase inside its own auth callback (it can deadlock): defer the refresh.
       store.onAuth((s) => {
@@ -33,7 +39,8 @@ export async function init() {
       if (store.isEmpty()) await seedDemo(store);
       set({ mode: 'local' });
     }
-    await refresh();
+    set({ bootStep: 'Loading your kitchen' });
+    await withTimeout(refresh(), 15000, 'loading your kitchen');
     set({ ready: true });
   } catch (e) {
     console.error(e);
@@ -327,6 +334,14 @@ export function ownerName(userId) {
 }
 export function ownerIndex(userId) {
   return Math.max(0, state.members.findIndex((x) => x.user_id === userId));
+}
+
+// Escape hatch: forget the saved login and cached files, then start fresh.
+export async function hardReset() {
+  try { Object.keys(localStorage).filter((k) => k.startsWith('sb-')).forEach((k) => localStorage.removeItem(k)); } catch {}
+  try { const keys = await caches.keys(); await Promise.all(keys.map((k) => caches.delete(k))); } catch {}
+  try { const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map((r) => r.unregister())); } catch {}
+  location.reload();
 }
 
 export function clearError() { set({ error: null }); }

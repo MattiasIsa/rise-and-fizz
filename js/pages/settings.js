@@ -1,6 +1,6 @@
 import { html, useState, useApp, toast } from '../html.js';
 import { Blobs } from '../components.js';
-import { signIn, signInPassword, signUp, resetPassword, setPassword, signOut, getStore, resetDemo, serverTestPing, createHousehold, joinHousehold, updateMembership, renameHousehold, leaveHousehold } from '../lib/api.js';
+import { signIn, signInPassword, signUp, resetPassword, setPassword, signOut, getStore, resetDemo, serverTestPing, hardReset, createHousehold, joinHousehold, updateMembership, renameHousehold, leaveHousehold } from '../lib/api.js';
 import { Sheet } from '../components.js';
 import { pushSupport, enablePush, testNotification } from '../lib/push.js';
 
@@ -164,6 +164,7 @@ export function Settings() {
         <span><b>Laptop:</b> Chrome or Edge → the install icon in the address bar. Or just bookmark it.</span>
       </section>
 
+      <button class="btn" style="color:var(--muted)" onClick=${hardReset}>Trouble? Reset this device and reload</button>
       <span class="small muted">Rise & Fizz · ${s.mode === 'supabase' ? 'synced with Supabase' : 'demo mode'}</span>
     </div>`;
 }
