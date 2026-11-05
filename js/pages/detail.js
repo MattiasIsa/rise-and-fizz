@@ -5,15 +5,39 @@ import { BREAD_STAGES, breadNumbers, estimateRise, tasteWord, tasteColor, kombuc
 import { whenLabel, hhmm, dayLabel, shortDate, clock, duration, toLocalInput, compactDuration } from '../lib/format.js';
 import { projectView } from './home.js';
 
-function PhotoThumb({ data }) {
+function PhotoThumb({ log }) {
+  const data = log.data;
   const [src, setSrc] = useState(data.photo || null);
+  const [open, setOpen] = useState(false);
   useEffect(() => { if (!src) api.photoUrl(data).then(setSrc).catch(() => {}); }, []);
-  return src ? html`<img src=${src} alt="Photo from the log" style="width:100%;aspect-ratio:1;object-fit:cover;border:2px solid var(--line);border-radius:4px" />` : html`<span class="empty" style="aspect-ratio:1"></span>`;
+  return html`
+    <button type="button" aria-label="Open photo" onClick=${() => setOpen(true)} style="padding:0;border:0;background:none;display:block">
+      ${src ? html`<img src=${src} alt="Photo from the log" style="width:100%;aspect-ratio:1;object-fit:cover;border:2px solid var(--line);border-radius:4px;display:block" />` : html`<span class="empty" style="aspect-ratio:1;display:block"></span>`}
+    </button>
+    <${Sheet} open=${open} onClose=${() => setOpen(false)} title=${'Photo · ' + shortDate(log.at)}>
+      ${src && html`<img src=${src} alt="Photo from the log" style="width:100%;max-height:60vh;object-fit:contain;border-radius:4px" />`}
+      <${DeleteButton} label="Delete photo" what="this photo" detail="The photo will be removed from the log." onDelete=${async () => { await api.removeLog(log.id); setOpen(false); toast('Photo deleted'); }} />
+    <//>`;
+}
+
+// Tap a log line to fix its text, date or remove it.
+function LogEdit({ log, onClose }) {
+  const [text, setText] = useState(log ? log.text : '');
+  const [when, setWhen] = useState(log ? toLocalInput(log.at) : '');
+  if (!log) return null;
+  const ok = text.trim() && when && !isNaN(new Date(when).getTime());
+  return html`<${Sheet} open=${true} onClose=${onClose} title="Edit log entry">
+    <div class="field"><label for="le">Note</label><textarea id="le" class="input" rows="3" style="padding:10px" value=${text} onInput=${(e) => setText(e.target.value)}></textarea></div>
+    <div class="field"><label for="lw">When</label><input id="lw" class="input" type="datetime-local" value=${when} onInput=${(e) => setWhen(e.target.value)} /></div>
+    <button class="btn fill-y" disabled=${!ok} onClick=${async () => { await api.updateLog(log.id, { text: text.trim(), at: new Date(when).toISOString() }); onClose(); toast('Saved'); }}>Save</button>
+    <${DeleteButton} label="Delete entry" what="this entry" detail="This log entry will be removed." onDelete=${async () => { await api.removeLog(log.id); onClose(); toast('Deleted'); }} />
+  <//>`;
 }
 
 function LogSection({ project, logs, accent }) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(null);
   const photos = logs.filter((l) => l.data && (l.data.photo || l.data.photo_path));
   const add = async () => { if (!text.trim()) return; setBusy(true); try { await api.addLog(project.id, text.trim(), {}); setText(''); } finally { setBusy(false); } };
   // No `capture` attribute: phones then offer both the camera and the photo library. Several photos can be picked at once.
@@ -33,9 +57,10 @@ function LogSection({ project, logs, accent }) {
         <button class=${'btn sm ' + accent} disabled=${busy} onClick=${add}>Add</button>
         <label class="btn sm p" style="cursor:pointer">${busy ? '…' : 'Photo'}<input type="file" accept="image/*" multiple onChange=${upload} disabled=${busy} style="display:none" /></label>
       </div>
-      ${photos.length > 0 && html`<div class="grid-3">${photos.slice(0, 6).map((l) => html`<${PhotoThumb} key=${l.id} data=${l.data} />`)}</div>`}
+      ${photos.length > 0 && html`<div class="grid-3">${photos.map((l) => html`<${PhotoThumb} key=${l.id} log=${l} />`)}</div>`}
       ${logs.filter((l) => !(l.data && (l.data.photo || l.data.photo_path))).map((l) => html`
-        <div class="list-row"><span class="t" style=${accent === 't' ? 'color:var(--teal-text)' : ''}>${dayLabel(l.at) === 'Today' ? hhmm(l.at) : shortDate(l.at)}</span><span style="font-size:14px">${l.text}</span></div>`)}
+        <button type="button" class="list-row" aria-label=${'Edit log entry: ' + l.text} onClick=${() => setEditing(l)} style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0;color:inherit;font:inherit;cursor:pointer;align-items:baseline"><span class="t" style=${accent === 't' ? 'color:var(--teal-text)' : ''}>${dayLabel(l.at) === 'Today' ? hhmm(l.at) : shortDate(l.at)}</span><span style="font-size:14px;flex:1">${l.text}</span><span aria-hidden="true" style="color:var(--muted);font-size:13px">✎</span></button>`)}
+      ${editing && html`<${LogEdit} key=${editing.id} log=${editing} onClose=${() => setEditing(null)} />`}
     </section>`;
 }
 
@@ -198,6 +223,49 @@ function KombuchaActive({ p, s, now }) {
     <${FinishSheet} project=${p} open=${finish} onClose=${() => setFinish(false)} />`;
 }
 
+// Fix a finished bake or batch: rating, result, notes and dates.
+function ResultSheet({ p, open, onClose }) {
+  const tea = p.type === 'kombucha';
+  const res = p.result || {};
+  const [rating, setRating] = useState(p.rating || 0);
+  const [fizz, setFizz] = useState(res.fizz || 0);
+  const [rise, setRise] = useState(res.measuredRise != null ? String(res.measuredRise) : '');
+  const [bulk, setBulk] = useState(res.bulkMinutes ? String(Math.round(res.bulkMinutes / 6) / 10) : '');
+  const [retard, setRetard] = useState(res.retardHours != null ? String(res.retardHours) : '');
+  const [notes, setNotes] = useState(p.notes || '');
+  const [started, setStarted] = useState(toLocalInput(p.started_at));
+  const [finished, setFinished] = useState(p.finished_at ? toLocalInput(p.finished_at) : '');
+  const optNum = (v) => v === '' || (Number(v) >= 0 && Number.isFinite(Number(v)));
+  const okDate = (v) => v && !isNaN(new Date(v).getTime());
+  const ok = optNum(rise) && optNum(bulk) && optNum(retard) && okDate(started) && (!finished || (okDate(finished) && new Date(finished) >= new Date(started)));
+  return html`<${Sheet} open=${open} onClose=${onClose} title="Edit result">
+    <span class="label">Rating</span><${Stars} value=${rating} onChange=${setRating} />
+    ${tea ? html`<span class="label">Fizz</span><${Stars} value=${fizz} onChange=${setFizz} />` : html`
+      <div class="grid-3">
+        <div class="field"><label for="rr">Rise (%)</label><input id="rr" class="input" type="number" inputmode="decimal" min="0" value=${rise} onInput=${(e) => setRise(e.target.value)} /></div>
+        <div class="field"><label for="rb">Bulk (h)</label><input id="rb" class="input" type="number" inputmode="decimal" min="0" step="0.5" value=${bulk} onInput=${(e) => setBulk(e.target.value)} /></div>
+        <div class="field"><label for="rt">Fridge (h)</label><input id="rt" class="input" type="number" inputmode="decimal" min="0" step="0.5" value=${retard} onInput=${(e) => setRetard(e.target.value)} /></div>
+      </div>`}
+    <div class="field"><label for="rn">Notes</label><textarea id="rn" class="input" rows="3" style="padding:10px" placeholder="Crumb, crust, taste, what to try next time…" value=${notes} onInput=${(e) => setNotes(e.target.value)}></textarea></div>
+    <div class="grid-2">
+      <div class="field"><label for="rs">${tea ? 'Brewed' : 'Started'}</label><input id="rs" class="input" type="datetime-local" value=${started} onInput=${(e) => setStarted(e.target.value)} /></div>
+      <div class="field"><label for="rf">Finished</label><input id="rf" class="input" type="datetime-local" value=${finished} onInput=${(e) => setFinished(e.target.value)} /></div>
+    </div>
+    ${!ok && html`<span class="small" style="color:var(--pink-text)">Check the numbers, and that it finished after it started.</span>`}
+    <button class=${'btn ' + (tea ? 'fill-t' : 'fill-y')} disabled=${!ok} onClick=${async () => {
+      const result = { ...res };
+      if (tea) result.fizz = fizz || null;
+      else {
+        result.measuredRise = rise === '' ? null : Number(rise);
+        result.bulkMinutes = bulk === '' ? null : Math.round(Number(bulk) * 60);
+        result.retardHours = retard === '' ? null : Number(retard);
+      }
+      await api.updateProject(p.id, { rating: rating || null, notes, result, started_at: new Date(started).toISOString(), finished_at: finished ? new Date(finished).toISOString() : null });
+      onClose(); toast('Saved');
+    }}>Save changes</button>
+  <//>`;
+}
+
 export function Record({ p, s }) {
   const tea = p.type === 'kombucha';
   const steps = s.reminders.filter((r) => r.project_id === p.id);
@@ -210,6 +278,7 @@ export function Record({ p, s }) {
   const retard = res.retardHours ? res.retardHours * 60 : span(at('fridge'), at('bake'));
   const accent = tea ? 't' : 'y';
   const [confirm, setConfirm] = useState(false);
+  const [editRes, setEditRes] = useState(false);
   return html`
     <div class=${'slab tilt-l ' + accent} style="padding:0;overflow:hidden;position:relative">
       <svg role="img" aria-label=${tea ? 'Print-style drawing of a SCOBY' : 'Print-style drawing of a scored loaf'} width="100%" height="190" viewBox="0 0 358 190" preserveAspectRatio="xMidYMid slice" style="display:block">
@@ -255,6 +324,11 @@ export function Record({ p, s }) {
       </div>`}
 
     ${p.notes && html`<div class="card stack" style="gap:6px"><span class="kicker" style=${tea ? 'color:var(--teal-text)' : 'color:var(--yellow)'}>Notes</span><span>${p.notes}</span></div>`}
+    <div class="grid-2">
+      <button class=${'btn ' + accent} onClick=${() => setEditRes(true)}>Edit result</button>
+      <a class=${'btn ' + accent} href=${'#/p/' + p.id + '/edit'}>Edit recipe</a>
+    </div>
+    ${editRes && html`<${ResultSheet} p=${p} open=${true} onClose=${() => setEditRes(false)} />`}
     <${LogSection} project=${p} logs=${logs} accent=${accent} />
     <a class=${'btn block ' + (tea ? 'fill-t' : 'fill-y')} href=${(tea ? '#/new/kombucha?from=' : '#/new/bread?from=') + p.id}>${tea ? 'Brew this again →' : 'Bake this again →'}</a>
     <button class="btn p" onClick=${() => setConfirm(true)}>Delete</button>
@@ -276,7 +350,7 @@ export function ProjectDetail({ id, back = '#/' }) {
       <${Blobs} items=${tea ? [{ c: 'teal', x: '-80px', y: '70px', s: 290 }, { c: 'pink', x: '60%', y: '760px', s: 240 }] : [{ c: 'pink', x: '-70px', y: '80px', s: 280 }, { c: 'dots', x: '55%', y: '400px', s: 240 }]} />
       <div class="topbar">
         <a href=${done ? '#/history' : back}>← ${done ? 'JOURNAL' : 'HOME'}</a>
-        ${!done && html`<a href=${'#/p/' + p.id + '/edit'} style=${'border:2px solid currentColor;border-radius:4px;padding:6px 12px;color:' + (tea ? 'var(--teal-text)' : 'var(--yellow)')}>EDIT</a>`}
+        ${html`<a href=${'#/p/' + p.id + '/edit'} style=${'border:2px solid currentColor;border-radius:4px;padding:6px 12px;color:' + (tea ? 'var(--teal-text)' : 'var(--yellow)')}>EDIT</a>`}
       </div>
       ${done ? html`<${Record} p=${p} s=${s} />` : tea ? html`<${KombuchaActive} p=${p} s=${s} now=${now} />` : html`<${BreadActive} p=${p} s=${s} now=${now} />`}
       ${!done && html`<div style="margin-top:24px"><${DeleteButton} label=${tea ? 'Delete this batch' : 'Delete this bake'} what=${p.name} detail=${p.name + ', its reminders and its log will be removed. Use "Finish" instead if you want to keep it in your history.'} onDelete=${async () => { await api.deleteProject(p); toast('Deleted ' + p.name); go('/'); }} /></div>`}

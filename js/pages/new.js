@@ -55,7 +55,7 @@ export function BreadForm({ from, edit, culture }) {
   const save = async () => {
     setBusy(true);
     try {
-      if (edit) { await updateSpecs(edit, spec, true); toast('Saved'); go('/p/' + edit.id); }
+      if (edit) { const done = edit.status !== 'active'; await updateSpecs(edit, spec, !done); toast('Saved'); go((done ? '/history/' : '/p/') + edit.id); }
       else { const p = await createBread(spec, new Date(start)); toast('Bake started. We\'ll ping you!'); go('/p/' + p.id); }
     } catch (e) { toast('Could not save: ' + e.message); } finally { setBusy(false); }
   };
@@ -63,7 +63,7 @@ export function BreadForm({ from, edit, culture }) {
   return html`
     <div class="main">
       <${Blobs} items=${[{ c: 'dots', x: '55%', y: '-40px', s: 240 }, { c: 'pink', x: '-100px', y: '900px', s: 280 }]} />
-      <div class="topbar"><a href=${edit ? '#/p/' + edit.id : '#/new'}>← BACK</a><span>${edit ? 'EDIT' : 'STEP 2/2'}</span></div>
+      <div class="topbar"><a href=${edit ? (edit.status !== 'active' ? '#/history/' : '#/p/') + edit.id : '#/new'}>← BACK</a><span>${edit ? 'EDIT' : 'STEP 2/2'}</span></div>
       <h1 class="h-display">${edit ? 'Edit' : 'New'}<br/><i>sourdough</i></h1>
 
       <div class="field"><label for="bname">Name</label><input id="bname" class="input" value=${spec.name} onInput=${set('name')} /></div>
@@ -154,7 +154,7 @@ export function KombuchaForm({ from, edit, culture }) {
     setBusy(true);
     try {
       const full = { ...spec, recipe };
-      if (edit) { await updateSpecs(edit, full, false); toast('Saved'); go('/p/' + edit.id); }
+      if (edit) { await updateSpecs(edit, full, false); toast('Saved'); go((edit.status !== 'active' ? '/history/' : '/p/') + edit.id); }
       else { const p = await createKombucha(full, new Date(start)); toast('Batch started!'); go('/p/' + p.id); }
     } catch (e) { toast('Could not save: ' + e.message); } finally { setBusy(false); }
   };
@@ -162,7 +162,7 @@ export function KombuchaForm({ from, edit, culture }) {
   return html`
     <div class="main k">
       <${Blobs} items=${[{ c: 'teal', x: '55%', y: '-50px', s: 260 }, { c: 'dots', x: '-60px', y: '720px', s: 220 }]} />
-      <div class="topbar"><a href=${edit ? '#/p/' + edit.id : '#/new'}>← BACK</a><span>${edit ? 'EDIT' : 'STEP 2/2'}</span></div>
+      <div class="topbar"><a href=${edit ? (edit.status !== 'active' ? '#/history/' : '#/p/') + edit.id : '#/new'}>← BACK</a><span>${edit ? 'EDIT' : 'STEP 2/2'}</span></div>
       <h1 class="h-display teal">${edit ? 'Edit' : 'New'}<br/><i>kombucha</i></h1>
 
       <div class="field"><label for="kname">Name</label><input id="kname" class="input" value=${spec.name} onInput=${set('name')} /></div>

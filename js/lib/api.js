@@ -233,6 +233,8 @@ async function addLogRaw(projectId, text, data) {
   return store.insert('logs', { project_id: projectId, at: new Date().toISOString(), text, data: data || {} });
 }
 export function addLog(projectId, text, data) { return run(() => addLogRaw(projectId, text, data)); }
+export function updateLog(id, patch) { return run(() => store.update('logs', id, patch)); }
+export function removeLog(id) { return run(() => store.remove('logs', id)); }
 
 export async function addPhoto(projectId, file) {
   if (store.kind !== 'supabase') {
