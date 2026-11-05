@@ -1,6 +1,8 @@
 -- Timers that make notifications and the daily fact happen.
--- Before running: store the cron secret in Vault (the same value as the CRON_SECRET function secret):
---   select vault.create_secret('<your cron secret>', 'cron_secret');
+-- Before running, store these in Vault (the edge functions read them through public.rf_secret):
+--   select vault.create_secret('<random cron secret>', 'cron_secret');
+--   select vault.create_secret('<VAPID public key>', 'vapid_public');
+--   select vault.create_secret('<VAPID private key>', 'vapid_private');
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
 

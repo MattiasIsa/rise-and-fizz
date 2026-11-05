@@ -1,10 +1,15 @@
 // Asks Claude for a fun fact or quiz question based on the user's own fermentation data.
 // Called by the app ("New fact" / "Quiz me", with the user's login) and once a day by pg_cron (with CRON_SECRET).
-// Secrets needed: ANTHROPIC_API_KEY, CRON_SECRET.
+// Secrets: ANTHROPIC_API_KEY (function secret); cron_secret lives in Vault, read through rf_secret().
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const admin = createClient(URL_, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+let cronSecret = '';
+async function getCronSecret() {
+  if (!cronSecret) { const { data } = await admin.rpc('rf_secret', { secret_name: 'cron_secret' }); cronSecret = (data as string) || ''; }
+  return cronSecret;
+}
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -32,7 +37,7 @@ async function askClaude(kind: string, data: unknown) {
     : 'Write one short, interesting fact or insight. Prefer a real pattern in their own data (cite their numbers). If there is too little data, give a surprising general fermentation fact instead.';
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'x-api-key': Deno.env.get('ANTHROPIC_API_KEY')!, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    headers: { 'x-api-key': Deno.env.get('ANTHROPIC_API_KEY') || '', 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
       model: 'claude-haiku-5-5',
       max_tokens: 200,
@@ -59,7 +64,8 @@ Deno.serve(async (req) => {
     const kind = body.kind === 'quiz' ? 'quiz' : 'fact';
 
     // Daily run for everyone who has logged something.
-    if (req.headers.get('x-cron-secret') && req.headers.get('x-cron-secret') === Deno.env.get('CRON_SECRET')) {
+    const given = req.headers.get('x-cron-secret');
+    if (given && given === (await getCronSecret())) {
       const { data: users } = await admin.from('projects').select('user_id');
       const ids = [...new Set((users || []).map((u) => u.user_id))];
       let made = 0;

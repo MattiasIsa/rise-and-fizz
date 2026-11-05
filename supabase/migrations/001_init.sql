@@ -86,6 +86,29 @@ create table if not exists public.push_subscriptions (
   created_at timestamptz not null default now()
 );
 
+create index if not exists cultures_user_idx on public.cultures (user_id);
+create index if not exists culture_events_user_idx on public.culture_events (user_id);
+create index if not exists culture_events_culture_idx on public.culture_events (culture_id);
+create index if not exists projects_user_idx on public.projects (user_id);
+create index if not exists projects_culture_idx on public.projects (culture_id);
+create index if not exists reminders_user_idx on public.reminders (user_id);
+create index if not exists reminders_project_idx on public.reminders (project_id);
+create index if not exists reminders_culture_idx on public.reminders (culture_id);
+create index if not exists logs_user_idx on public.logs (user_id);
+create index if not exists logs_project_idx on public.logs (project_id);
+create index if not exists facts_user_idx on public.facts (user_id);
+create index if not exists push_subscriptions_user_idx on public.push_subscriptions (user_id);
+
+-- Lets the edge functions (and only them, via the service role) read secrets kept in Vault.
+create or replace function public.rf_secret(secret_name text)
+returns text
+language sql
+security definer
+set search_path = ''
+as $$ select decrypted_secret from vault.decrypted_secrets where name = secret_name limit 1 $$;
+revoke all on function public.rf_secret(text) from public, anon, authenticated;
+grant execute on function public.rf_secret(text) to service_role;
+
 -- Row-level security: you can only read and write your own rows.
 do $$
 declare t text;

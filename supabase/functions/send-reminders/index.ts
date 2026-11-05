@@ -1,18 +1,27 @@
 // Sends push notifications for reminders that are due. Called every minute by pg_cron.
-// Secrets needed: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, CRON_SECRET.
+// Keys live in Supabase Vault (cron_secret, vapid_public, vapid_private), read through rf_secret().
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-webpush.setVapidDetails(
-  Deno.env.get('VAPID_SUBJECT') || 'mailto:hello@example.com',
-  Deno.env.get('VAPID_PUBLIC_KEY')!,
-  Deno.env.get('VAPID_PRIVATE_KEY')!
-);
+const secrets: Record<string, string> = {};
+async function secret(name: string) {
+  if (!secrets[name]) {
+    const { data, error } = await db.rpc('rf_secret', { secret_name: name });
+    if (error || !data) throw new Error('missing secret ' + name);
+    secrets[name] = data as string;
+  }
+  return secrets[name];
+}
+let vapidReady = false;
 
 Deno.serve(async (req) => {
-  if (req.headers.get('x-cron-secret') !== Deno.env.get('CRON_SECRET')) {
+  if (req.headers.get('x-cron-secret') !== (await secret('cron_secret'))) {
     return new Response('forbidden', { status: 403 });
+  }
+  if (!vapidReady) {
+    webpush.setVapidDetails('https://mattiasisa.github.io/rise-and-fizz/', await secret('vapid_public'), await secret('vapid_private'));
+    vapidReady = true;
   }
   const now = new Date();
   const soon = new Date(now.getTime() + 60 * 1000).toISOString();

@@ -20,8 +20,8 @@ Leave `js/config.js` empty to run in **demo mode**, where sample data is kept in
 1. **Database**: run `supabase/migrations/001_init.sql` in the SQL editor.
 2. **Auth**: under Authentication → URL Configuration, set the Site URL to the GitHub Pages address (e.g. `https://mattiasisa.github.io/rise-and-fizz/`) and add it to Redirect URLs.
 3. **Functions**: deploy `supabase/functions/send-reminders` and `supabase/functions/daily-fact` with JWT verification off (see `supabase/config.toml`).
-4. **Function secrets**: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (e.g. `mailto:you@example.com`), `CRON_SECRET`, `ANTHROPIC_API_KEY`.
-5. **Timers**: store the cron secret in Vault (`select vault.create_secret('<secret>', 'cron_secret');`), then run `supabase/migrations/002_schedules.sql`.
+4. **Secrets**: store `cron_secret`, `vapid_public` and `vapid_private` in Vault (see the top of `002_schedules.sql`), and set `ANTHROPIC_API_KEY` as an edge function secret for the daily fact.
+5. **Timers**: run `supabase/migrations/002_schedules.sql`.
 
 ## Notifications
 
