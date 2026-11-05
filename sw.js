@@ -1,9 +1,9 @@
 // Rise & Fizz service worker: offline app shell + push notifications.
-const VERSION = 'rf-v11';
+const VERSION = 'rf-v12';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './css/app.css',
   './js/main.js', './js/config.js', './js/html.js', './js/components.js',
-  './js/lib/api.js', './js/lib/store.js', './js/lib/schedule.js', './js/lib/format.js', './js/lib/demo.js', './js/lib/facts.js', './js/lib/push.js',
+  './js/lib/api.js', './js/lib/store.js', './js/lib/schedule.js', './js/lib/format.js', './js/lib/demo.js', './js/lib/facts.js', './js/lib/push.js', './js/lib/feedcalc.js',
   './js/pages/home.js', './js/pages/new.js', './js/pages/detail.js', './js/pages/cultures.js', './js/pages/history.js', './js/pages/stats.js', './js/pages/settings.js', './js/pages/setup.js',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon.svg'
 ];
