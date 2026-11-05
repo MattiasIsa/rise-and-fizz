@@ -24,6 +24,38 @@ function Scatter({ points, xLabel, yLabel, xFmt = (x) => x, yFmt = (y) => y, col
   </svg>`;
 }
 
+// A quiz is stored as JSON: { q, options, answer, explain }. Older ones were plain text with "(Answer: …)".
+function parseQuiz(fact) {
+  if (!fact || !String(fact.kind).startsWith('quiz')) return null;
+  try { const j = JSON.parse(fact.text); if (j && j.q && Array.isArray(j.options)) return j; } catch {}
+  const m = String(fact.text).match(/^(?:Quiz:\s*)?(.*?)\s*\(Answer:\s*(.*)\)\s*$/);
+  return m ? { q: m[1], reveal: m[2] } : { q: fact.text };
+}
+
+function QuizCard({ quiz, id }) {
+  const [picked, setPicked] = useState(null);
+  const [shown, setShown] = useState(false);
+  if (quiz.options) {
+    const done = picked != null;
+    return html`<div class="stack" style="gap:8px" key=${id}>
+      <span class="big-num" style="font-size:24px;line-height:1.12;letter-spacing:-0.01em">${quiz.q}</span>
+      <div class="stack" style="gap:6px">
+        ${quiz.options.map((o, i) => {
+          const right = i === quiz.answer;
+          const bg = !done ? 'transparent' : right ? 'var(--teal)' : i === picked ? 'var(--ink)' : 'transparent';
+          const fg = !done ? '#fff' : right ? 'var(--ink)' : '#fff';
+          return html`<button class="btn" disabled=${done} onClick=${() => setPicked(i)} style=${`justify-content:flex-start;text-align:left;text-transform:none;font-family:var(--body);font-size:15px;color:${fg};background:${bg};border-color:#fff;opacity:1;min-height:48px;padding:8px 12px`}>${done && right ? '✓ ' : done && i === picked ? '✗ ' : ''}${o}</button>`;
+        })}
+      </div>
+      ${done && html`<span style="font-weight:600">${picked === quiz.answer ? 'Correct! ' : 'Not quite. '}${quiz.explain || ''}</span>`}
+    </div>`;
+  }
+  return html`<div class="stack" style="gap:8px">
+    <span class="big-num" style="font-size:24px;line-height:1.12;letter-spacing:-0.01em">${quiz.q}</span>
+    ${quiz.reveal && (shown ? html`<span style="font-weight:600">${quiz.reveal}</span>` : html`<button class="btn" style="color:#fff;align-self:flex-start" onClick=${() => setShown(true)}>Show answer</button>`)}
+  </div>`;
+}
+
 function downloadCsv(rows) {
   const head = ['type', 'name', 'started', 'rating', 'hydration_pct', 'kitchen_c', 'bulk_min', 'retard_h', 'rise_pct', 'f1_days', 'f2_days', 'fizz', 'notes'];
   const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
@@ -46,6 +78,7 @@ export function Stats() {
   const f1s = teas.map((t) => t.specs.f1Days).filter(Boolean);
   const avgF1 = f1s.length ? Math.round(f1s.reduce((a, b) => a + b, 0) / f1s.length) + ' d' : '—';
   const fact = s.facts[0];
+  const quiz = parseQuiz(fact);
 
   const hydPts = rated.map((b) => ({ x: breadNumbers(b.specs).hydration, y: b.rating, title: `${b.name}: ${breadNumbers(b.specs).hydration}%, ${b.rating}/5` }));
   const best = rated.filter((b) => b.rating >= 5);
@@ -82,8 +115,8 @@ export function Stats() {
       <div class="home-grid">
         <div class="stack">
           <div class="slab p tilt-l pulse-p stack" style="gap:10px">
-            <div class="row between kicker" style="font-size:11px"><span>Fact of the day${s.mode === 'supabase' ? ' · from Claude' : ''}</span><span>${fact ? shortDate(fact.created_at) : ''}</span></div>
-            <span class="big-num" style="font-size:24px;line-height:1.12;letter-spacing:-0.01em">${fact ? fact.text : 'Tap New fact for your first one.'}</span>
+            <div class="row between kicker" style="font-size:11px"><span>${quiz ? 'Quiz time' : 'Fact of the day'}${fact && !String(fact.kind).endsWith('-local') ? ' · from Claude' : ''}</span><span>${fact ? shortDate(fact.created_at) : ''}</span></div>
+            ${quiz ? html`<${QuizCard} key=${fact.id} quiz=${quiz} id=${fact.id} />` : html`<span class="big-num" style="font-size:24px;line-height:1.12;letter-spacing:-0.01em">${fact ? fact.text : 'Tap New fact for your first one.'}</span>`}
             <div class="row">
               <button class="btn solid-ink" style="color:var(--pink-text)" disabled=${busy} onClick=${() => ask('fact')}>${busy ? 'Thinking…' : 'New fact'}</button>
               <button class="btn" style="color:#fff" disabled=${busy} onClick=${() => ask('quiz')}>Quiz me</button>

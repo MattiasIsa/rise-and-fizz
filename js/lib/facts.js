@@ -12,15 +12,20 @@ const GENERAL = [
   'Kombucha usually starts around pH 4.5 and is ready somewhere between 2.5 and 3.5.'
 ];
 
+// Multiple-choice quizzes: { q, options, answer (index), explain }
 const QUIZ = [
-  'Quiz: why does a loaf proofed in the fridge taste more sour? (Answer: the yeast slows down more than the acid-making bacteria.)',
-  'Quiz: what does the dashed line on your starter jar mark? (Answer: where it peaked last time, so you can spot the next peak.)',
-  'Quiz: why burp F2 bottles? (Answer: to release CO2 so pressure doesn\'t build up too far.)',
-  'Quiz: which fermentation adds the flavour, F1 or F2? (Answer: F2. Fruit goes in after the SCOBY comes out.)'
+  { q: 'Why does a loaf that proofs overnight in the fridge taste more sour?', options: ['The cold kills the yeast', 'The yeast slows down more than the acid-making bacteria', 'The fridge adds moisture', 'Cold flour absorbs more salt'], answer: 1, explain: 'Cold slows the yeast more than the lactic and acetic acid bacteria, so acid builds up relative to rise.' },
+  { q: 'What is the dashed line on your starter jar for?', options: ['The maximum safe fill', 'Where it should be after feeding', 'Where it peaked last time', 'The water level'], answer: 2, explain: 'Marking the last peak makes it easy to spot when it gets there again.' },
+  { q: 'Why do you "burp" kombucha bottles during F2?', options: ['To let oxygen in for the yeast', 'To release CO₂ before pressure builds too far', 'To taste-test it', 'To stop mould'], answer: 1, explain: 'F2 is sealed, so CO₂ builds up. A quick burp keeps the bottles safe.' },
+  { q: 'When do you add fruit or ginger to kombucha?', options: ['F1, with the SCOBY', 'F2, after the SCOBY comes out', 'Before brewing the tea', 'Never, it ruins the SCOBY'], answer: 1, explain: 'Flavours go in during F2. Fruit in F1 can upset the SCOBY.' },
+  { q: 'Which usually makes a starter peak sooner?', options: ['Feeding 1:5:5', 'A colder kitchen', 'Rye flour', 'Less water'], answer: 2, explain: 'Rye brings extra nutrients and enzymes, so the microbes get going faster.' },
+  { q: 'Roughly what salt percentage do most sourdough recipes use?', options: ['0.5%', '2%', '5%', '10%'], answer: 1, explain: 'Most loaves sit around 1.8–2.2% of the flour weight.' },
+  { q: 'What does 75% hydration mean for 500 g flour?', options: ['375 g water', '750 g water', '75 g water', '500 g water'], answer: 0, explain: 'Hydration is water as a share of flour: 0.75 × 500 g = 375 g.' },
+  { q: 'Kombucha is usually ready to bottle at around which pH?', options: ['6–7', '4.5–5', '2.5–3.5', '1–1.5'], answer: 2, explain: 'It starts around 4.5 and drops as it ferments. Around 2.5–3.5 is the usual sweet spot.' }
 ];
 
 export function localFact(state, kind = 'fact', seed = 0) {
-  if (kind === 'quiz') return QUIZ[seed % QUIZ.length];
+  if (kind === 'quiz') return JSON.stringify(QUIZ[seed % QUIZ.length]);
   const own = ownFacts(state);
   const pool = own.length ? own.concat(GENERAL) : GENERAL;
   return pool[seed % pool.length];

@@ -33,21 +33,27 @@ async function summarise(userId: string) {
 
 async function askClaude(kind: string, data: unknown) {
   const instruction = kind === 'quiz'
-    ? 'Write one short, fun quiz question about sourdough or kombucha, with the answer in brackets at the end. If the data allows, make it about their own bakes or batches.'
+    ? 'Write one fun multiple-choice quiz question about sourdough or kombucha (about their own bakes or batches if the data allows). Reply with JSON only, no other text: {"q": "question", "options": ["3 or 4 short options"], "answer": index of the correct option, "explain": "one short sentence on why"}. Exactly one option is correct; the others must be plausible but wrong.'
     : 'Write one short, interesting fact or insight. Prefer a real pattern in their own data (cite their numbers). If there is too little data, give a surprising general fermentation fact instead.';
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': Deno.env.get('ANTHROPIC_API_KEY') || '', 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
       model: 'claude-haiku-5-5',
-      max_tokens: 200,
-      system: 'You write the "Fact of the day" card in a home sourdough and kombucha tracking app. Be accurate, warm and playful. Maximum 40 words. Metric units. Plain text only, no markdown, no emoji. Never repeat anything in the "avoid" list. Do not invent data the user did not log.',
+      max_tokens: 400,
+      system: 'You write the "Fact of the day" card in a home sourdough and kombucha tracking app. Be accurate, warm and playful. Maximum 40 words (quiz question plus options may use up to 60). Metric units. No markdown, no emoji. Never repeat anything in the "avoid" list. Do not invent data the user did not log.',
       messages: [{ role: 'user', content: `${instruction}\n\nTheir data (JSON):\n${JSON.stringify(data)}` }]
     })
   });
   if (!res.ok) throw new Error('Claude API error ' + res.status + ': ' + (await res.text()).slice(0, 200));
   const json = await res.json();
-  return (json.content || []).map((c: { text?: string }) => c.text || '').join('').trim();
+  const text = (json.content || []).map((c: { text?: string }) => c.text || '').join('').trim();
+  if (kind !== 'quiz') return text;
+  // Quizzes are stored as JSON so the app can show tappable options.
+  const raw = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
+  const q = JSON.parse(raw);
+  if (!q.q || !Array.isArray(q.options) || q.options.length < 2 || !(q.answer >= 0 && q.answer < q.options.length)) throw new Error('Bad quiz from Claude');
+  return JSON.stringify({ q: String(q.q), options: q.options.map(String).slice(0, 4), answer: Number(q.answer), explain: String(q.explain || '') });
 }
 
 async function factFor(userId: string, kind: string) {

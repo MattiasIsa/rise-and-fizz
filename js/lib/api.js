@@ -290,7 +290,7 @@ export async function newFact(kind = 'fact') {
     catch (e) { console.warn('AI fact unavailable, using a local one', e); }
   }
   const text = localFact(state, kind, state.facts.length);
-  return run(() => store.insert('facts', { kind, text }));
+  return run(() => store.insert('facts', { kind: kind + '-local', text }));
 }
 
 // Real end-to-end test: the server sends this within about a minute, even if the app is closed.
