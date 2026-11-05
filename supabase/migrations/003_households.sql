@@ -1,0 +1,10 @@
+-- Shared kitchens. Applied to the live project as migrations
+-- "rise_and_fizz_households" and "rise_and_fizz_lock_trigger_fn".
+-- Summary:
+--   households (name, invite_code) + household_members (display_name, notify_all)
+--   household_id column on cultures, culture_events, projects, reminders, logs
+--   rf_set_household trigger: new rows land in the creator's household
+--   "own rows" policies widened to: own rows OR rows in one of my households
+--   rf_create_household / rf_join_household RPCs (security definer) adopt the caller's rows
+--   storage: household members can read each other's photos
+-- See the Supabase migration history for the exact SQL.
