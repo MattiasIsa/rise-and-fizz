@@ -1,0 +1,7 @@
+# Both functions check their own credentials (cron secret or the user's login),
+# so the gateway's JWT check is turned off to let pg_cron call them.
+[functions.send-reminders]
+verify_jwt = false
+
+[functions.daily-fact]
+verify_jwt = false
