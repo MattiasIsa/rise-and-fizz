@@ -16,14 +16,22 @@ function LogSection({ project, logs, accent }) {
   const [busy, setBusy] = useState(false);
   const photos = logs.filter((l) => l.data && (l.data.photo || l.data.photo_path));
   const add = async () => { if (!text.trim()) return; setBusy(true); try { await api.addLog(project.id, text.trim(), {}); setText(''); } finally { setBusy(false); } };
-  const upload = async (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; setBusy(true); try { await api.addPhoto(project.id, f); toast('Photo added'); } catch (err) { toast('Upload failed: ' + err.message); } finally { setBusy(false); e.target.value = ''; } };
+  // No `capture` attribute: phones then offer both the camera and the photo library. Several photos can be picked at once.
+  const upload = async (e) => {
+    const files = Array.from((e.target.files) || []); if (!files.length) return;
+    setBusy(true);
+    let ok = 0;
+    try { for (const f of files) { await api.addPhoto(project.id, f); ok++; } toast(ok === 1 ? 'Photo added' : ok + ' photos added'); }
+    catch (err) { toast((ok ? ok + ' added, then upload failed: ' : 'Upload failed: ') + err.message); }
+    finally { setBusy(false); e.target.value = ''; }
+  };
   return html`
     <section class="stack" style="gap:6px" aria-label="Log">
       <span class="kicker">Log</span>
       <div class="row">
         <input class="input" aria-label="Add a note" placeholder="Add a note…" value=${text} onInput=${(e) => setText(e.target.value)} onKeyDown=${(e) => e.key === 'Enter' && add()} />
         <button class=${'btn sm ' + accent} disabled=${busy} onClick=${add}>Add</button>
-        <label class="btn sm p" style="cursor:pointer">Photo<input type="file" accept="image/*" capture="environment" onChange=${upload} style="display:none" /></label>
+        <label class="btn sm p" style="cursor:pointer">${busy ? '…' : 'Photo'}<input type="file" accept="image/*" multiple onChange=${upload} disabled=${busy} style="display:none" /></label>
       </div>
       ${photos.length > 0 && html`<div class="grid-3">${photos.slice(0, 6).map((l) => html`<${PhotoThumb} key=${l.id} data=${l.data} />`)}</div>`}
       ${logs.filter((l) => !(l.data && (l.data.photo || l.data.photo_path))).map((l) => html`

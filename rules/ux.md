@@ -12,3 +12,4 @@ Interaction rules we have learned the hard way. Read before building or changing
 8. **Reminders shift with reality.** Completing a fold late shifts the later folds; feeding creates the next feed reminder.
 9. **Sensible defaults:** bread defaults to a cold retard overnight. Kombucha uses best-guess recipes (55 g/L sugar, 4 g/L tea, 10% starter liquid).
 10. **Never block on loading.** Start-up shows what it's waiting for, and after 8 s offers Reload and Reset. The Starter pack (`#/setup`) renders even when nothing else loads.
+11. **Photos come from the camera or the library.** File inputs never use `capture`, so phones offer both, and allow picking several at once.
