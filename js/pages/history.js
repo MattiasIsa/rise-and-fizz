@@ -1,5 +1,5 @@
 import { html, useState, useApp } from '../html.js';
-import { Blobs } from '../components.js';
+import { Blobs, Owner } from '../components.js';
 import { breadNumbers } from '../lib/schedule.js';
 import { shortDate, compactDuration } from '../lib/format.js';
 
@@ -35,7 +35,7 @@ export function History() {
         ${list.map((p, i) => p.type === 'bread' ? html`
           <a href=${'#/history/' + p.id} class="slab y" style=${`padding:0;overflow:hidden;text-decoration:none;display:flex;flex-direction:column;transform:rotate(${tilt(i)})`}>
             <div class="row between" style="padding:12px 14px 0">
-              <span class="stack" style="gap:0"><span class="kicker" style="font-size:11px">${shortDate(p.started_at)}</span><span class="big-num" style="font-size:26px;line-height:1">${p.name}</span></span>
+              <span class="stack" style="gap:2px"><span class="row" style="gap:6px"><span class="kicker" style="font-size:11px">${shortDate(p.started_at)}</span><${Owner} id=${p.user_id} style="box-shadow:none;background:var(--ink);color:var(--paper)" /></span><span class="big-num" style="font-size:26px;line-height:1">${p.name}</span></span>
               <span class="big-num" style="font-size:44px;text-shadow:2px 2px 0 var(--pink)">${p.rating ? p.rating + '/5' : '—'}</span>
             </div>
             <svg aria-hidden="true" width="100%" height="80" viewBox="0 0 358 86" preserveAspectRatio="xMidYMid meet" style="display:block"><circle cx="220" cy="50" r="40" fill="#FF2E9A" opacity="0.6"></circle><path d="M90 80c0-40 40-68 89-68s89 28 89 68c0 4-4 6-10 6H100c-6 0-10-2-10-6z" fill="none" stroke="#15173D" stroke-width="4"></path><path d="M136 44c26-14 62-16 90 2" fill="none" stroke="#15173D" stroke-width="5" stroke-linecap="round"></path></svg>
@@ -48,7 +48,7 @@ export function History() {
           <a href=${'#/history/' + p.id} class="card t row" style=${`gap:14px;text-decoration:none;color:inherit;transform:rotate(${tilt(i)});align-items:stretch;padding:12px`}>
             <svg aria-hidden="true" width="88" height="98" viewBox="0 0 88 98" style="flex:none;background:var(--teal)"><circle cx="56" cy="40" r="30" fill="#FFE800" opacity="0.7"></circle><ellipse cx="44" cy="54" rx="30" ry="20" fill="none" stroke="#15173D" stroke-width="4"></ellipse><ellipse cx="44" cy="50" rx="18" ry="10" fill="none" stroke="#15173D" stroke-width="3"></ellipse></svg>
             <span class="stack" style="gap:4px">
-              <span class="kicker" style="font-size:11px;color:var(--teal-text)">${shortDate(p.started_at)}</span>
+              <span class="row" style="gap:6px"><span class="kicker" style="font-size:11px;color:var(--teal-text)">${shortDate(p.started_at)}</span><${Owner} id=${p.user_id} /></span>
               <span class="big-num" style="font-size:22px;line-height:1">${p.name}</span>
               <span class="small muted">${p.specs.f1Days || '?'} d F1 · ${p.specs.f2Days || '?'} d F2${p.specs.flavors && p.specs.flavors.length ? ' · ' + p.specs.flavors.join(', ') : ''}</span>
               <span class="kicker" style="color:var(--teal-text)">Fizz ${'●'.repeat((p.result && p.result.fizz) || 0)}${'○'.repeat(5 - ((p.result && p.result.fizz) || 0))}</span>

@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
 
   const { data: due, error } = await db
     .from('reminders')
-    .select('id, user_id, project_id, culture_id, kind, title, detail, due_at')
+    .select('id, user_id, household_id, project_id, culture_id, kind, title, detail, due_at')
     .is('done_at', null)
     .is('notified_at', null)
     .eq('notify', true)
@@ -39,7 +39,14 @@ Deno.serve(async (req) => {
   if (error) return new Response(error.message, { status: 500 });
   if (!due || due.length === 0) return Response.json({ sent: 0 });
 
-  const userIds = [...new Set(due.map((r) => r.user_id))];
+  // Owner always gets it; housemates too if they chose "ping me for everyone's reminders".
+  const householdIds = [...new Set(due.map((r) => r.household_id).filter(Boolean))];
+  const { data: fans } = householdIds.length
+    ? await db.from('household_members').select('household_id, user_id').in('household_id', householdIds).eq('notify_all', true)
+    : { data: [] };
+  const recipients = (r: { user_id: string; household_id: string | null }) =>
+    [...new Set([r.user_id, ...(fans || []).filter((f) => f.household_id === r.household_id).map((f) => f.user_id)])];
+  const userIds = [...new Set(due.flatMap((r) => recipients(r)))];
   const { data: subs } = await db.from('push_subscriptions').select('*').in('user_id', userIds);
   const projectIds = [...new Set(due.map((r) => r.project_id).filter(Boolean))];
   const { data: projects } = projectIds.length
@@ -49,7 +56,8 @@ Deno.serve(async (req) => {
 
   let sent = 0;
   for (const r of due) {
-    const mine = (subs || []).filter((s) => s.user_id === r.user_id);
+    const who = recipients(r);
+    const mine = (subs || []).filter((s) => who.includes(s.user_id));
     const name = r.project_id ? names.get(r.project_id) : null;
     const payload = JSON.stringify({
       title: r.title,

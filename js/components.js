@@ -1,4 +1,5 @@
 import { html, useEffect } from './html.js';
+import { ownerName, ownerIndex } from './lib/api.js';
 
 export function Blobs({ items = [] }) {
   return items.map((b) => html`<div aria-hidden="true" class=${'blob ' + b.c} style=${`left:${b.x};top:${b.y};width:${b.s}px;height:${b.s}px`}></div>`);
@@ -76,4 +77,13 @@ export function Stages({ stages, current, color = 'var(--yellow)' }) {
   return html`<div class="stages" style=${`--n:${stages.length};--c:${color}`}>
     ${stages.map((s, i) => html`<span class=${current === 'done' || i < idx ? 'on' : i === idx ? 'now' : ''}><i></i>${s.label}</span>`)}
   </div>`;
+}
+
+// Small name tag showing whose loaf, batch or starter this is (only in a shared kitchen).
+const OWNER_COLORS = [['#FFE800', '#15173D'], ['#FF2E9A', '#FFFFFF'], ['#00C2B8', '#15173D'], ['#F5F0FF', '#15173D']];
+export function Owner({ id, style = '' }) {
+  const name = ownerName(id);
+  if (!name) return null;
+  const [bg, fg] = OWNER_COLORS[ownerIndex(id) % OWNER_COLORS.length];
+  return html`<span class="owner" style=${`background:${bg};color:${fg};${style}`} title=${name + "'s"}>${name.toUpperCase()}</span>`;
 }

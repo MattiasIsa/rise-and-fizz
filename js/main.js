@@ -49,10 +49,19 @@ function Page({ path, query, s }) {
   return html`<div class="main"><div class="empty"><span class="h2">Page not found</span><a href="#/">Go home</a></div></div>`;
 }
 
+// If start-up takes suspiciously long, offer a way out instead of a frozen logo.
+function Booting() {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setSlow(true), 8000); return () => clearTimeout(t); }, []);
+  return html`<div class="boot" style="display:flex;flex-direction:column;gap:18px;align-items:center">Rise & Fizz
+    ${slow && html`<span class="small muted" style="font-family:var(--body);font-weight:400;text-align:center;max-width:280px">Taking longer than usual. Check your connection, then</span><button class="btn y" onClick=${() => location.reload()}>Reload</button>`}
+  </div>`;
+}
+
 function App() {
   const s = useApp();
   const { path, query } = useRoute();
-  if (!s.ready) return html`<div class="boot">Rise & Fizz</div>`;
+  if (!s.ready) return html`<${Booting} />`;
   if (s.needsLogin) return path === '/setup' ? html`<${Setup} />` : html`<${Login} />`;
   return html`
     <div class="shell">

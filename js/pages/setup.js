@@ -68,7 +68,7 @@ export function Setup() {
         <${Step} n="1">In the app, tap <b>New account</b>.<//>
         <${Step} n="2">Type your email and a password (at least 8 characters), then tap <b>Create my kitchen</b>.<//>
         <${Step} n="3">If it asks you to confirm, open the email from <b>Supabase</b> (check spam), tap the link once, then go back to the app and <b>Sign in</b>.${dev === 'iphone' ? ' The link opens Safari; that\'s fine, just return to the home screen app afterwards.' : ''}<//>
-        <span class="small" style="font-weight:500">Everyone gets their own kitchen: your bakes, batches and starters are private to your email.</span>
+        <span class="small" style="font-weight:700">Sharing a kitchen? Once signed in, go to <b>Settings → Shared kitchen → I have a code</b>, type your name and the code you were sent, and tap <b>Join kitchen</b>.</span>
       </section>
 
       <section class="slab p tilt-l stack" style="gap:12px">

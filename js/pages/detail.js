@@ -1,5 +1,5 @@
 import { html, useState, useEffect, useApp, useNow, go, toast } from '../html.js';
-import { Jar, Blobs, Sheet, Stars, Stages } from '../components.js';
+import { Jar, Blobs, Sheet, Stars, Stages, Owner } from '../components.js';
 import * as api from '../lib/api.js';
 import { BREAD_STAGES, breadNumbers, estimateRise, tasteWord, tasteColor, kombuchaActivity, f1Days, TIME } from '../lib/schedule.js';
 import { whenLabel, hhmm, dayLabel, shortDate, clock, duration, toLocalInput, compactDuration } from '../lib/format.js';
@@ -88,7 +88,7 @@ function BreadActive({ p, s, now }) {
     <div class="row" style="gap:16px;align-items:flex-end">
       <${Jar} type="bread" fill=${v.fill} activity=${v.activity} peak=${28 + v.est.target * 0.55} w=${110} h=${160} label=${`Dough risen about ${v.est.rise} percent`} />
       <div class="stack" style="gap:6px">
-        <span class="kicker">${p.name} / ${v.label}</span>
+        <${Owner} id=${p.user_id} /><span class="kicker">${p.name} / ${v.label}</span>
         <h1 class="big-num" style="margin:0;font-size:46px;text-shadow:3px 2px 0 var(--teal)">${p.name}</h1>
         ${v.inBulk && html`<span class="badge">+${v.est.rise}% · ${v.est.minutesLeft ? compactDuration(v.est.minutesLeft) + ' TO GO' : 'READY TO SHAPE'}</span>`}
       </div>
@@ -142,7 +142,7 @@ function KombuchaActive({ p, s, now }) {
     <div class="row" style="gap:16px;align-items:flex-end">
       <${Jar} type="tea" fill=${v.fill} activity=${v.activity} w=${110} h=${160} label=${`Kombucha jar, activity ${v.activity} percent`} />
       <div class="stack" style="gap:6px">
-        <span class="kicker">${culture ? culture.name : 'SCOBY'} · ${p.specs.tea} tea · ${p.specs.volume} L</span>
+        <${Owner} id=${p.user_id} /><span class="kicker">${culture ? culture.name : 'SCOBY'} · ${p.specs.tea} tea · ${p.specs.volume} L</span>
         <h1 class="big-num" style="margin:0;font-size:46px;text-shadow:3px 2px 0 var(--pink)">${p.name}</h1>
         <span class="badge teal">${v.label}${p.stage === 'f1' ? ' OF ~' + total : ''}</span>
         <span class="small muted">Started ${shortDate(p.started_at)} · ${p.specs.temp} °C</span>

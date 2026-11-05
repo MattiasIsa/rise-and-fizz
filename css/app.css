@@ -166,6 +166,7 @@ input[type=checkbox] { width: 24px; height: 24px; accent-color: var(--yellow); f
 .nav .plus { width: 58px; height: 58px; padding: 0; border-radius: 6px; background: var(--yellow); color: var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 36px; font-weight: 900; transform: rotate(-4deg); box-shadow: 0 0 24px rgba(255, 232, 0, 0.6); }
 .nav .brand, .nav .start-wide, .nav .start-wide-settings { display: none; }
 
+.owner { display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; padding: 2px 6px; border-radius: 3px; align-self: flex-start; white-space: nowrap; box-shadow: 0 0 0 2px var(--ink); }
 .banner { font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 10px 12px; border: 2px dashed var(--pink); color: var(--pink-text); border-radius: 4px; }
 .empty { border: 2px dashed var(--line); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 6px; }
 .toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--yellow); color: var(--ink); font-family: var(--mono); font-weight: 700; font-size: 14px; padding: 12px 18px; border-radius: 4px; z-index: 30; box-shadow: 0 0 30px rgba(255, 232, 0, 0.6); max-width: calc(100% - 32px); }

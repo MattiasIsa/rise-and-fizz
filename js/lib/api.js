@@ -8,7 +8,7 @@ import { localFact } from './facts.js';
 let store = null;
 const listeners = new Set();
 let state = { ready: false, mode: 'local', session: null, needsLogin: false, error: null,
-  cultures: [], cultureEvents: [], projects: [], reminders: [], logs: [], facts: [] };
+  cultures: [], cultureEvents: [], projects: [], reminders: [], logs: [], facts: [], household: null, members: [] };
 
 export const getState = () => state;
 export const getStore = () => store;
@@ -21,7 +21,11 @@ export async function init() {
       store = await createSupabaseStore();
       const session = await store.session();
       set({ mode: 'supabase', session });
-      store.onAuth(async (s) => { set({ session: s, needsLogin: !s }); if (s) await refresh(); });
+      // Never call Supabase inside its own auth callback (it can deadlock): defer the refresh.
+      store.onAuth((s) => {
+        set({ session: s, needsLogin: !s });
+        if (s) setTimeout(() => { refresh().then(() => set({ ready: true })).catch((e) => set({ ready: true, error: e.message })); }, 0);
+      });
       if (!session) { set({ ready: true, needsLogin: true }); return; }
       store.subscribeChanges(() => refresh());
     } else {
@@ -50,7 +54,13 @@ export async function refresh() {
       store.list('logs', { order: 'at', desc: true }),
       store.list('facts', { order: 'created_at', desc: true, limit: 30 })
     ]);
-    set({ cultures, cultureEvents, projects, reminders, logs, facts, error: null });
+    let household = null, members = [];
+    if (store.kind === 'supabase') {
+      const [h, m] = await Promise.all([store.list('households'), store.list('household_members', { order: 'joined_at' })]);
+      household = h[0] || null;
+      members = household ? m.filter((x) => x.household_id === household.id) : [];
+    }
+    set({ cultures, cultureEvents, projects, reminders, logs, facts, household, members, error: null });
   })().finally(() => { refreshing = null; });
   return refreshing;
 }
@@ -279,6 +289,44 @@ export async function newFact(kind = 'fact') {
 // Real end-to-end test: the server sends this within about a minute, even if the app is closed.
 export function serverTestPing() {
   return run(() => store.insert('reminders', { kind: 'test', title: 'Test from Rise & Fizz', detail: 'Server notifications work. Bubbles incoming!', due_at: new Date().toISOString(), idx: 0, notify: true }));
+}
+
+// ---------- Shared kitchen ----------
+async function rpc(fn, args) {
+  const { data, error } = await store.client.rpc(fn, args);
+  if (error) throw new Error(error.message);
+  return data;
+}
+export const createHousehold = (name, myName) => run(() => rpc('rf_create_household', { kitchen_name: name, my_name: myName }));
+export const joinHousehold = (code, myName) => run(() => rpc('rf_join_household', { code, my_name: myName }));
+export function updateMembership(patch) {
+  return run(async () => {
+    const me = state.session.user.id;
+    const { error } = await store.client.from('household_members').update(patch).eq('household_id', state.household.id).eq('user_id', me);
+    if (error) throw new Error(error.message);
+  });
+}
+export function renameHousehold(name) {
+  return run(async () => {
+    const { error } = await store.client.from('households').update({ name }).eq('id', state.household.id);
+    if (error) throw new Error(error.message);
+  });
+}
+export function leaveHousehold() {
+  return run(async () => {
+    const { error } = await store.client.from('household_members').delete().eq('household_id', state.household.id).eq('user_id', state.session.user.id);
+    if (error) throw new Error(error.message);
+  });
+}
+
+// Display name for whoever owns a row, when the kitchen is shared.
+export function ownerName(userId) {
+  if (!state.household || state.members.length < 2) return null;
+  const m = state.members.find((x) => x.user_id === userId);
+  return m ? m.display_name : null;
+}
+export function ownerIndex(userId) {
+  return Math.max(0, state.members.findIndex((x) => x.user_id === userId));
 }
 
 export function clearError() { set({ error: null }); }

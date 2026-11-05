@@ -1,6 +1,7 @@
 import { html, useState, useApp, toast } from '../html.js';
 import { Blobs } from '../components.js';
-import { signIn, signInPassword, signUp, resetPassword, setPassword, signOut, getStore, resetDemo, serverTestPing } from '../lib/api.js';
+import { signIn, signInPassword, signUp, resetPassword, setPassword, signOut, getStore, resetDemo, serverTestPing, createHousehold, joinHousehold, updateMembership, renameHousehold, leaveHousehold } from '../lib/api.js';
+import { Sheet } from '../components.js';
 import { pushSupport, enablePush, testNotification } from '../lib/push.js';
 
 export function Login() {
@@ -59,6 +60,58 @@ function PasswordCard() {
   </section>`;
 }
 
+function KitchenCard({ s }) {
+  const [mode, setMode] = useState('create');
+  const [kitchen, setKitchen] = useState('Our kitchen');
+  const [name, setName] = useState('');
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const me = s.session.user.id;
+  const mine = s.members.find((m) => m.user_id === me);
+  const go = async (fn) => { setBusy(true); try { await fn(); } catch (e) { toast(e.message); } finally { setBusy(false); } };
+  if (s.household && mine) {
+    const share = async () => {
+      const text = `Join our Rise & Fizz kitchen! Open https://mattiasisa.github.io/rise-and-fizz/#/setup , sign up, then go to Settings → Shared kitchen and enter the code ${s.household.invite_code}`;
+      try { if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); toast('Invite copied'); } } catch (e) { /* cancelled */ }
+    };
+    return html`<section class="card y stack">
+      <span class="kicker" style="color:var(--yellow)">Shared kitchen</span>
+      <span class="h2">${s.household.name}</span>
+      <div class="stack" style="gap:6px">${s.members.map((m) => html`<span class="row" style="gap:8px"><span class="badge yellow" style="background:var(--paper)">${m.display_name.toUpperCase()}</span><span class="small muted">${m.user_id === me ? 'you' : ''}</span></span>`)}</div>
+      <div class="slab y tilt-l row between">
+        <span class="stack" style="gap:0"><span class="kicker" style="font-size:11px">Invite code</span><span class="big-num" style="font-size:40px;letter-spacing:0.08em">${s.household.invite_code}</span></span>
+        <button class="btn solid-ink" onClick=${share}>Share</button>
+      </div>
+      <span class="small muted">Whoever has this code can join after signing up. Everything you both log is shared, with a name tag showing whose it is.</span>
+      <div class="field"><label for="dn">Your name tag</label>
+        <div class="row"><input id="dn" class="input" value=${name || mine.display_name} onInput=${(e) => setName(e.target.value)} /><button class="btn sm y" disabled=${busy || !name.trim()} onClick=${() => go(async () => { await updateMembership({ display_name: name.trim() }); setName(''); toast('Saved'); })}>Save</button></div>
+      </div>
+      <label class="toggle-row"><input type="checkbox" checked=${mine.notify_all} onChange=${(e) => go(() => updateMembership({ notify_all: e.target.checked }))} /><span class="stack" style="gap:0"><b>Ping me for everyone's reminders</b><span class="small muted">Otherwise you only get pinged for your own loaves, batches and starters</span></span></label>
+      <button class="btn" style="color:var(--muted)" onClick=${() => { const n = prompt('Kitchen name', s.household.name); if (n && n.trim()) go(() => renameHousehold(n.trim())); }}>Rename kitchen</button>
+      <button class="btn p" onClick=${() => setLeaving(true)}>Leave kitchen</button>
+      <${Sheet} open=${leaving} onClose=${() => setLeaving(false)} title="Leave the shared kitchen?">
+        <span class="muted">You'll stop seeing everyone else's stuff. What you made stays in the kitchen for the others.</span>
+        <button class="btn fill-p" onClick=${() => go(async () => { await leaveHousehold(); setLeaving(false); toast('Left the kitchen'); })}>Leave</button>
+      <//>
+    </section>`;
+  }
+  return html`<section class="card y stack">
+    <span class="kicker" style="color:var(--yellow)">Shared kitchen</span>
+    <span>Share bakes, batches and starters with someone, with name tags showing whose is whose.</span>
+    <div class="row wrap">
+      <button class=${'chip' + (mode === 'create' ? ' on' : '')} onClick=${() => setMode('create')}>Start a kitchen</button>
+      <button class=${'chip' + (mode === 'join' ? ' on' : '')} onClick=${() => setMode('join')}>I have a code</button>
+    </div>
+    <div class="field"><label for="myn">Your name tag</label><input id="myn" class="input" placeholder="e.g. Mattias" value=${name} onInput=${(e) => setName(e.target.value)} /></div>
+    ${mode === 'create' ? html`
+      <div class="field"><label for="kn">Kitchen name</label><input id="kn" class="input" value=${kitchen} onInput=${(e) => setKitchen(e.target.value)} /></div>
+      <button class="btn fill-y" disabled=${busy || !name.trim()} onClick=${() => go(async () => { await createHousehold(kitchen, name); toast('Kitchen created! Share the code.'); })}>Start kitchen</button>` : html`
+      <div class="field"><label for="ic">Invite code</label><input id="ic" class="input" autocapitalize="characters" maxlength="6" value=${code} onInput=${(e) => setCode(e.target.value.toUpperCase())} style="font-size:22px;letter-spacing:0.2em;text-align:center" /></div>
+      <button class="btn fill-y" disabled=${busy || !name.trim() || code.length < 6} onClick=${() => go(async () => { await joinHousehold(code, name); toast('Welcome to the kitchen!'); })}>Join kitchen</button>`}
+  </section>`;
+}
+
 export function Settings() {
   const s = useApp();
   const [p, setP] = useState(pushSupport());
@@ -85,6 +138,7 @@ export function Settings() {
           <span>Demo mode. Data is saved in this browser only.</span>
           <button class="btn y" onClick=${async () => { await resetDemo(); toast('Demo data reset'); }}>Reset demo data</button>`}
       </section>
+      ${s.mode === 'supabase' && s.session && html`<${KitchenCard} s=${s} />`}
       ${s.mode === 'supabase' && s.session && html`<${PasswordCard} />`}
 
       <section class="card p stack">

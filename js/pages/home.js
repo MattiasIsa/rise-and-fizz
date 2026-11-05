@@ -1,5 +1,5 @@
 import { html, useState, useApp, useNow, toast } from '../html.js';
-import { Jar, Blobs } from '../components.js';
+import { Jar, Blobs, Owner } from '../components.js';
 import { completeReminder, snoozeReminder } from '../lib/api.js';
 import { estimateRise, breadStage, kombuchaDay, f1Days, kombuchaActivity, TIME } from '../lib/schedule.js';
 import { whenLabel, greeting, compactDuration } from '../lib/format.js';
@@ -76,7 +76,7 @@ export function Home() {
           <span class="kicker">Up next · ${list.length}</span>
           ${top ? (() => { const st = reminderStyle(top, s.projects, s.cultures); return html`
             <div class=${'slab tilt-l stack ' + (st.tea ? 't pulse-t' : 'y pulse-y')} style="gap:8px">
-              <div class="row between kicker"><a href=${st.href} style="color:inherit;text-decoration:none">${st.kicker}</a><span>${whenLabel(top.due_at, now)}</span></div>
+              <div class="row between kicker"><span class="row" style="gap:8px"><a href=${st.href} style="color:inherit;text-decoration:none">${st.kicker}</a><${Owner} id=${top.user_id} style="box-shadow:none;background:var(--ink);color:var(--paper)" /></span><span>${whenLabel(top.due_at, now)}</span></div>
               <span class="big-num" style="font-size:38px;line-height:.95">${top.title}</span>
               ${top.detail && html`<span style="font-size:14px;font-weight:500">${top.detail}</span>`}
               <div class="row">
@@ -89,7 +89,7 @@ export function Home() {
             <div class=${'card row ' + (st.tea ? 't' : 'y')} style="padding:8px 8px 8px 14px;gap:12px">
               <a href=${st.href} style="flex:1;min-width:0;color:inherit;text-decoration:none;display:flex;flex-direction:column;gap:2px">
                 <span style="font-weight:700">${r.title}</span>
-                <span class="small muted" style="font-family:var(--mono)">${st.kicker} · ${whenLabel(r.due_at, now)}</span>
+                <span class="row" style="gap:6px"><${Owner} id=${r.user_id} /><span class="small muted" style="font-family:var(--mono)">${st.kicker} · ${whenLabel(r.due_at, now)}</span></span>
               </a>
               <button class=${'btn sm ' + (st.tea ? 't' : 'y')} onClick=${() => done(r)}>Done</button>
             </div>`; })}
@@ -106,7 +106,7 @@ export function Home() {
             <a href=${'#/p/' + hero.p.id} class="row" style="gap:16px;align-items:flex-end;text-decoration:none;color:inherit">
               <${Jar} type="bread" fill=${heroFill} activity=${40 + heroRise * 0.6} peak=${28 + hero.v.est.target * 0.55} w=${124} h=${180} label=${`${hero.p.name}, risen ${heroRise} percent`} />
               <div class="stack" style="gap:6px;padding-bottom:6px">
-                <span class="kicker">${hero.p.name} / ${hero.v.label}</span>
+                <${Owner} id=${hero.p.user_id} /><span class="kicker">${hero.p.name} / ${hero.v.label}</span>
                 <span class="big-num" style="font-size:84px;text-shadow:3px 2px 0 var(--teal)">${heroRise}<span style="font-size:38px">%</span></span>
                 <span class="badge">${heroEta}</span>
                 <span class="small muted">Target +${hero.v.est.target}%</span>
@@ -121,7 +121,7 @@ export function Home() {
               ${others.map((p) => { const v = projectView(p, s.reminders, now); const tea = p.type === 'kombucha'; return html`
                 <a href=${'#/p/' + p.id} class=${'card ' + (tea ? 't' : 'y')} style="display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;color:inherit;padding:12px 8px">
                   <${Jar} type=${tea ? 'tea' : 'bread'} fill=${v.fill} activity=${v.activity} w=${58} h=${76} />
-                  <span style="font-family:var(--display);font-weight:900;font-size:18px;text-align:center">${p.name}</span>
+                  <span style="font-family:var(--display);font-weight:900;font-size:18px;text-align:center">${p.name}</span><${Owner} id=${p.user_id} style="align-self:center" />
                   <span class="kicker" style=${'font-size:10px;color:' + (tea ? 'var(--teal-text)' : 'var(--yellow)')}>${v.label}</span>
                   <span class="small muted" style="text-align:center">${v.next ? v.next.title.replace(/ \(F2 day \d\)/, '') + ' · ' + whenLabel(v.next.due_at, now) : 'Nothing scheduled'}</span>
                 </a>`; })}

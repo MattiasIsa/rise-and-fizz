@@ -112,7 +112,7 @@ export async function createSupabaseStore() {
     },
     subscribeChanges(cb) {
       const ch = client.channel('rf-changes');
-      TABLES.forEach((t) => ch.on('postgres_changes', { event: '*', schema: 'public', table: t }, cb));
+      TABLES.concat('household_members').forEach((t) => ch.on('postgres_changes', { event: '*', schema: 'public', table: t }, cb));
       ch.subscribe();
       return () => client.removeChannel(ch);
     }

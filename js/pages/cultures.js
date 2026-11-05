@@ -1,5 +1,5 @@
 import { html, useState, useApp, useNow, toast } from '../html.js';
-import { Jar, Blobs, Sheet } from '../components.js';
+import { Jar, Blobs, Sheet, Owner } from '../components.js';
 import { feedCulture, createCulture, updateCulture } from '../lib/api.js';
 import { starterPeakHours, TIME } from '../lib/schedule.js';
 import { whenLabel } from '../lib/format.js';
@@ -77,7 +77,7 @@ export function Cultures({ query }) {
             <${Jar} type=${scoby ? 'tea' : 'bread'} fill=${scoby ? 70 : c.location === 'fridge' ? 30 : 46} activity=${scoby ? 80 : c.location === 'fridge' ? 10 : hungry ? 25 : 60} w=${70} h=${92} label=${c.name} />
             <div class="stack" style="gap:4px;flex:1;min-width:0">
               <span class="kicker" style=${'font-size:10px;color:' + (scoby ? 'var(--teal-text)' : c.location === 'fridge' ? 'var(--pink-text)' : 'var(--yellow)')}>${scoby ? 'SCOBY · kombucha' : 'Starter · ' + c.location}</span>
-              <span class="big-num" style="font-size:28px;line-height:1">${c.name}</span>
+              <span class="big-num" style="font-size:28px;line-height:1">${c.name}</span><${Owner} id=${c.user_id} />
               <span class="small" style="font-weight:700">${scoby ? (uses ? `In ${uses} batches` : 'Ready for a batch') : hungry ? 'Hungry!' : `Fed ${ago(last && last.at, now)}`}</span>
               <span class="small muted">${ageDays != null ? ageDays + ' days old · ' : ''}${scoby ? (c.notes || '') : `feeds every ~${c.feed_every_hours} h${due ? ' · next ' + whenLabel(due.due_at, now) : ''}`}</span>
               <button class=${'btn sm ' + accent} style="align-self:flex-start;margin-top:6px" onClick=${() => setFeeding(c)}>${scoby ? 'Log a check' : 'Log feed'}</button>
