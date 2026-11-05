@@ -1,4 +1,4 @@
-import { html, useEffect } from './html.js';
+import { html, useEffect, useState } from './html.js';
 import { ownerName, ownerIndex } from './lib/api.js';
 
 export function Blobs({ items = [] }) {
@@ -86,4 +86,17 @@ export function Owner({ id, style = '' }) {
   if (!name) return null;
   const [bg, fg] = OWNER_COLORS[ownerIndex(id) % OWNER_COLORS.length];
   return html`<span class="owner" style=${`background:${bg};color:${fg};${style}`} title=${name + "'s"}>${name.toUpperCase()}</span>`;
+}
+
+// A quiet delete button that asks first. what: e.g. "Jonny"; detail: what else goes with it.
+export function DeleteButton({ label = 'Delete', what, detail, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  return html`
+    <button class="btn" style="color:var(--pink-text);border-style:dashed;opacity:0.85" onClick=${() => setOpen(true)}>${label}</button>
+    <${Sheet} open=${open} onClose=${() => setOpen(false)} title=${'Delete ' + what + '?'}>
+      <span class="muted">${detail || what + ' will be removed.'} This can't be undone.</span>
+      <button class="btn fill-p" disabled=${busy} onClick=${async () => { setBusy(true); try { await onDelete(); setOpen(false); } finally { setBusy(false); } }}>${busy ? 'Deleting…' : 'Yes, delete ' + what}</button>
+      <button class="btn" style="color:var(--muted)" onClick=${() => setOpen(false)}>Keep it</button>
+    <//>`;
 }

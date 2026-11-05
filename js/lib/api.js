@@ -286,6 +286,18 @@ export function feedCulture(cultureId, data) { return run(() => feedCultureRaw(c
 export function logCultureEvent(cultureId, type, data = {}, at = new Date()) {
   return run(() => store.insert('culture_events', { culture_id: cultureId, type, at: new Date(at).toISOString(), data }));
 }
+// Deletes a culture with its feeds, peaks, notes and reminders. Loaves and batches stay, just unlinked.
+export function deleteCulture(c) {
+  return run(async () => {
+    if (store.kind !== 'supabase') {
+      // The database cascades this; the demo store needs it done by hand.
+      for (const e of state.cultureEvents.filter((x) => x.culture_id === c.id)) await store.remove('culture_events', e.id);
+      for (const r of state.reminders.filter((x) => x.culture_id === c.id)) await store.remove('reminders', r.id);
+      for (const p of state.projects.filter((x) => x.culture_id === c.id)) await store.update('projects', p.id, { culture_id: null });
+    }
+    await store.remove('cultures', c.id);
+  });
+}
 export function removeCultureEvent(id) { return run(() => store.remove('culture_events', id)); }
 
 // ---------- Facts ----------

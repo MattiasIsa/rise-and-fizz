@@ -1,5 +1,5 @@
 import { html, useState, useEffect, useApp, useNow, go, toast } from '../html.js';
-import { Jar, Blobs, Sheet, Stars, Stages, Owner } from '../components.js';
+import { Jar, Blobs, Sheet, Stars, Stages, Owner, DeleteButton } from '../components.js';
 import * as api from '../lib/api.js';
 import { BREAD_STAGES, breadNumbers, estimateRise, tasteWord, tasteColor, kombuchaActivity, f1Days, TIME } from '../lib/schedule.js';
 import { whenLabel, hhmm, dayLabel, shortDate, clock, duration, toLocalInput, compactDuration } from '../lib/format.js';
@@ -271,5 +271,6 @@ export function ProjectDetail({ id, back = '#/' }) {
         ${!done && html`<a href=${'#/p/' + p.id + '/edit'} style=${'border:2px solid currentColor;border-radius:4px;padding:6px 12px;color:' + (tea ? 'var(--teal-text)' : 'var(--yellow)')}>EDIT</a>`}
       </div>
       ${done ? html`<${Record} p=${p} s=${s} />` : tea ? html`<${KombuchaActive} p=${p} s=${s} now=${now} />` : html`<${BreadActive} p=${p} s=${s} now=${now} />`}
+      ${!done && html`<div style="margin-top:24px"><${DeleteButton} label=${tea ? 'Delete this batch' : 'Delete this bake'} what=${p.name} detail=${p.name + ', its reminders and its log will be removed. Use "Finish" instead if you want to keep it in your history.'} onDelete=${async () => { await api.deleteProject(p); toast('Deleted ' + p.name); go('/'); }} /></div>`}
     </div>`;
 }

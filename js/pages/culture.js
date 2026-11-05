@@ -1,7 +1,7 @@
 // One culture's own page: fun stats, useful stats, birthday, history, and actions underneath.
-import { html, useState, useApp, useNow, toast } from '../html.js';
-import { Jar, Blobs, Sheet, Owner } from '../components.js';
-import { updateCulture, logCultureEvent, removeCultureEvent } from '../lib/api.js';
+import { html, useState, useApp, useNow, toast, go } from '../html.js';
+import { Jar, Blobs, Sheet, Owner, DeleteButton } from '../components.js';
+import { updateCulture, logCultureEvent, removeCultureEvent, deleteCulture } from '../lib/api.js';
 import { cultureStats, birthday, hoursSinceFeed, eatenWord, parseDay } from '../lib/culturestats.js';
 import { shortDate, hhmm, whenLabel } from '../lib/format.js';
 import { TIME } from '../lib/schedule.js';
@@ -229,6 +229,8 @@ export function CultureDetail({ id }) {
         })}
       </div>
       ${st.history.length > 8 && html`<button class="btn" style="color:var(--muted)" onClick=${() => setShowAll(!showAll)}>${showAll ? 'Show less' : `Show all ${st.history.length}`}</button>`}
+
+      <div style="margin-top:24px"><${DeleteButton} label=${'Delete ' + c.name} what=${c.name} detail=${`${c.name} and all ${st.history.length} diary ${st.history.length === 1 ? 'entry' : 'entries'} (feeds, peaks, notes) and reminders will be removed.${st.projects.length ? ` Your ${st.projects.length} ${scoby ? (st.projects.length === 1 ? 'batch stays' : 'batches stay') : (st.projects.length === 1 ? 'loaf stays' : 'loaves stay')} in History.` : ''}`} onDelete=${async () => { await deleteCulture(c); toast('Goodbye, ' + c.name); go('/cultures'); }} /></div>
 
       ${sheet === 'feed' && html`<${FeedSheet} c=${c} onClose=${close} />`}
       ${sheet === 'peak' && html`<${PeakSheet} c=${c} events=${s.cultureEvents} open=${true} onClose=${close} />`}
