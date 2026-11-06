@@ -95,12 +95,14 @@ class Boundary extends Component {
 render(html`<${Boundary}><${App} /><//>`, document.getElementById('app'));
 init().then(async () => {
   // If notifications are already allowed, make sure the server knows about this device.
-  const { getState, getStore } = await import('./lib/api.js');
+  const { getState, getStore, tidyReminders } = await import('./lib/api.js');
   const { enablePush } = await import('./lib/push.js');
   const st = getState();
   if (st.mode === 'supabase' && st.session && 'Notification' in window && Notification.permission === 'granted') {
     enablePush(getStore()).catch((e) => console.warn('Push registration failed', e));
   }
+  // Move kombucha reminders that land at night (in this phone's timezone) to the morning.
+  if (st.ready && !st.needsLogin) tidyReminders().catch((e) => console.warn('Reminder tidy failed', e));
 });
 
 if ('serviceWorker' in navigator) {

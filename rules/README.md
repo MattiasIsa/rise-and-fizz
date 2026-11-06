@@ -17,4 +17,4 @@ How Rise & Fizz looks, feels and is built. **Read this index before any change, 
 2. Data never just disappears; every delete is confirmed.
 3. Inputs never fight the user: clearable, prefilled from last time, validated before save.
 4. Secrets never go in the repo or in chat.
-5. Bump the service worker version on every deploy.
+5. Bump the version (sw.js and js/version.js) on every deploy.

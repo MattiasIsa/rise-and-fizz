@@ -1,7 +1,7 @@
 // App state + every action the screens can take. Screens never talk to storage directly.
 
 import { createLocalStore, createSupabaseStore, isCloudConfigured } from './store.js';
-import { breadSchedule, kombuchaSchedule, f2Schedule, starterPeakHours, TIME } from './schedule.js';
+import { breadSchedule, kombuchaSchedule, f2Schedule, starterPeakHours, awake, DAYTIME_KINDS, TIME } from './schedule.js';
 import { seedDemo } from './demo.js';
 import { localFact } from './facts.js';
 
@@ -100,9 +100,28 @@ export async function setPassword(password) {
 export const signOut = async () => { await store.signOut(); set({ session: null, needsLogin: true }); };
 
 // ---------- Projects ----------
-const toReminders = (projectId, steps, notify) => steps.map((s) => ({
-  project_id: projectId, kind: s.kind, title: s.title, detail: s.detail || '', due_at: s.at, idx: s.idx, notify: notify !== false
-}));
+// Steps already in the past (a backdated start) are marked done at their own time, so they don't nag.
+const toReminders = (projectId, steps, notify) => {
+  const now = Date.now() - 5 * TIME.MIN;
+  return steps.map((s) => ({
+    project_id: projectId, kind: s.kind, title: s.title, detail: s.detail || '', due_at: s.at, idx: s.idx, notify: notify !== false,
+    ...(new Date(s.at).getTime() < now ? { done_at: s.at } : {})
+  }));
+};
+
+// Kombucha reminders follow the phone's current timezone: anything open that lands at night moves to the morning.
+// Runs on start-up, so it also fixes reminders made while travelling.
+async function realignDaytime() {
+  for (const r of state.reminders) {
+    if (r.done_at || !DAYTIME_KINDS.includes(r.kind) || !r.project_id) continue;
+    const p = state.projects.find((x) => x.id === r.project_id);
+    if (!p || p.type !== 'kombucha') continue;
+    const t = new Date(r.due_at).getTime();
+    const moved = awake(t);
+    if (moved !== t) await store.update('reminders', r.id, { due_at: new Date(moved).toISOString(), notified_at: null });
+  }
+}
+export function tidyReminders() { return run(realignDaytime); }
 
 export function createBread(spec, startAt) {
   return run(async () => {

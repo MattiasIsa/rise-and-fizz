@@ -66,6 +66,8 @@ export function FeedSheet({ c, onClose }) {
     setTyped((t) => ({ s: '', f: '', w: '', [last]: t[last] }));
   };
   const ratioShown = ratioMode === 'auto' && calc.actualText ? calc.actualText : ratioText;
+  const latest = s.cultureEvents.find((e) => e.culture_id === c.id && (e.type === 'feed' || e.type === 'check'));
+  const minsAgo = latest ? Math.round((Date.now() - new Date(latest.at).getTime()) / 60000) : null;
   const presets = ['1:1:1', '1:2:2', '1:5:5'];
   const gramBox = (k, label) => html`
     <div class="field">
@@ -74,6 +76,7 @@ export function FeedSheet({ c, onClose }) {
     </div>`;
 
   return html`<${Sheet} open=${!!c} onClose=${onClose} title=${scoby ? 'Log a check · ' + c.name : 'Feed · ' + c.name}>
+    ${minsAgo != null && minsAgo < 60 && html`<div class="banner">${c.name} was ${scoby ? 'checked' : 'fed'} ${minsAgo < 1 ? 'just now' : minsAgo + ' min ago'}. Logging again adds a second entry.</div>`}
     ${!scoby && html`
       <span class="label">Ratio (starter : flour : water)</span>
       <div class="row wrap">

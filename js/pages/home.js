@@ -1,9 +1,10 @@
-import { html, useState, useApp, useNow, toast } from '../html.js';
+import { html, useState, useEffect, useApp, useNow, toast } from '../html.js';
 import { Jar, Blobs, Owner } from '../components.js';
 import { completeReminder, snoozeReminder } from '../lib/api.js';
 import { estimateRise, breadStage, kombuchaDay, f1Days, kombuchaActivity, TIME } from '../lib/schedule.js';
 import { whenLabel, greeting, compactDuration } from '../lib/format.js';
-import { pushSupport } from '../lib/push.js';
+import { pushStatus } from '../lib/push.js';
+import { FeedSheet } from './cultures.js';
 
 const isBread = (p) => p.type === 'bread';
 
@@ -49,9 +50,17 @@ export function Home() {
   const rest = list.slice(1, 5);
   const hero = active.filter(isBread).map((p) => ({ p, v: projectView(p, s.reminders, now) })).find((x) => x.v.inBulk);
   const others = active.filter((p) => !hero || p.id !== hero.p.id);
-  const push = pushSupport();
+  const [push, setPush] = useState('on');
+  useEffect(() => { pushStatus().then(setPush); }, []);
+  const [feeding, setFeeding] = useState(null);
+  const [hideKitchen, setHideKitchen] = useState(() => { try { return localStorage.getItem('rf-hide-kitchen') === '1'; } catch { return false; } });
 
-  const done = async (r) => { await completeReminder(r); toast('Nice. Logged it.'); };
+  // A feed reminder opens the feed calculator (filled in from last time) instead of logging a blank feed.
+  const done = async (r) => {
+    const c = r.kind === 'feed' && r.culture_id && s.cultures.find((x) => x.id === r.culture_id);
+    if (c) { setFeeding(c); return; }
+    await completeReminder(r); toast('Nice. Logged it.');
+  };
   const snooze = async (r) => { await snoozeReminder(r, 10); toast('Snoozed 10 min'); };
 
   let heroRise = 0, heroEta = '', heroFill = 30;
@@ -69,7 +78,16 @@ export function Home() {
       <div class="topbar"><span>${greeting(new Date(now))}</span><span class="row" style="gap:14px"><a href="#/setup">STARTER PACK</a><a href="#/settings" aria-label="Settings">⚙</a></span></div>
       <h1 class="h-display">Your<br/><i>kitchen</i></h1>
       ${s.mode === 'local' && html`<div class="banner">DEMO MODE · DATA STAYS ON THIS DEVICE. <a href="#/settings">CONNECT</a></div>`}
-      ${s.mode === 'supabase' && push.permission === 'default' && html`<a class="banner" href="#/settings" style="text-decoration:none">TURN ON NOTIFICATIONS SO WE CAN PING YOU →</a>`}
+      ${s.mode === 'supabase' && push !== 'on' && push !== 'unsupported' && html`
+        <a class="banner" href=${push === 'install' ? '#/setup' : '#/settings'} style="text-decoration:none;display:flex;flex-direction:column;gap:4px">
+          <span>⚠ THIS PHONE WON'T GET REMINDERS</span>
+          <span style="font-weight:400;color:var(--paper);font-family:var(--body);font-size:14px">${push === 'install' ? 'On iPhone, add the app to your home screen first. The Starter pack shows how →' : push === 'blocked' ? 'Notifications are blocked for this app. Allow them in your phone settings, then come back →' : 'Tap here and turn on notifications →'}</span>
+        </a>`}
+      ${s.mode === 'supabase' && !s.household && !hideKitchen && html`
+        <div class="card p row between" style="gap:10px;padding:10px 12px">
+          <a href="#/settings" style="color:inherit;text-decoration:none;flex:1"><span class="kicker" style="font-size:11px;color:var(--pink-text)">Baking with someone?</span><br/><span class="small">Share one kitchen so you both see everything and get each other's pings →</span></a>
+          <button aria-label="Hide" style="background:none;border:0;color:var(--muted);font-size:20px;min-width:40px;min-height:40px" onClick=${() => { try { localStorage.setItem('rf-hide-kitchen', '1'); } catch {} setHideKitchen(true); }}>×</button>
+        </div>`}
 
       <div class="home-grid">
         <section class="stack" aria-label="Up next">
@@ -128,5 +146,6 @@ export function Home() {
             </div>`}
         </section>
       </div>
+      <${FeedSheet} key=${feeding ? feeding.id : 'none'} c=${feeding} onClose=${() => setFeeding(null)} />
     </div>`;
 }

@@ -14,3 +14,6 @@ Interaction rules we have learned the hard way. Read before building or changing
 10. **Never block on loading.** Start-up shows what it's waiting for, and after 8 s offers Reload and Reset. The Starter pack (`#/setup`) renders even when nothing else loads.
 11. **Photos come from the camera or the library.** File inputs never use `capture`, so phones offer both, and allow picking several at once.
 12. **Everything you logged can be fixed later.** Finished bakes and batches can have their result, notes, dates and recipe edited. Log entries and photos can be tapped to edit or delete.
+13. **Reminders respect sleep.** Kombucha steps (taste, burp, fridge) never land between 22:00 and 07:00 in the phone's current timezone: late evening moves back to 21:00, small hours move on to 09:00. Bread steps are never moved. Steps already in the past when something is backdated are marked done.
+14. **Ticking off a reminder must not invent data.** A feed reminder's Done opens the feed calculator, filled in from last time; it never logs a blank feed. Logging the same thing twice within an hour shows a warning.
+15. **Say when a phone can't be reached.** Home shows a banner when this phone isn't set up for reminders, with the exact next step (install, allow, turn on).

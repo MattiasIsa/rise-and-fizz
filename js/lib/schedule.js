@@ -163,9 +163,9 @@ export function f2Schedule(startAt, days = 3, baseIdx = 100) {
   const start = new Date(startAt).getTime();
   const steps = [];
   for (let d = 1; d <= days; d++) {
-    steps.push({ kind: 'burp', title: `Burp the bottles (F2 day ${d})`, detail: 'Open each cap briefly to release pressure', at: start + d * DAY });
+    steps.push({ kind: 'burp', title: `Burp the bottles (F2 day ${d})`, detail: 'Open each cap briefly to release pressure', at: awake(start + d * DAY) });
   }
-  steps.push({ kind: 'fridge', title: 'Move bottles to the fridge', detail: 'Stops the fizz from building further', at: start + days * DAY + 2 * HOUR });
+  steps.push({ kind: 'fridge', title: 'Move bottles to the fridge', detail: 'Stops the fizz from building further', at: awake(start + days * DAY + 2 * HOUR) });
   return steps.map((st, i) => ({ ...st, idx: baseIdx + i, at: new Date(st.at).toISOString() }));
 }
 
@@ -196,5 +196,17 @@ export function tasteColor(v) {
   const u = t < 0.5 ? t * 2 : (t - 0.5) * 2;
   return a.map((x, i) => Math.round(x + (b[i] - x) * u));
 }
+
+// Kombucha steps don't need the middle of the night (phone's local time):
+// 22:00–24:00 moves back to 21:00 the same evening, 00:00–07:00 moves on to 09:00.
+export const QUIET = { from: 22, to: 7, evening: 21, wake: 9 };
+export function awake(at) {
+  const d = new Date(at);
+  const h = d.getHours();
+  if (h >= QUIET.from) d.setHours(QUIET.evening, 0, 0, 0);
+  else if (h < QUIET.to) d.setHours(QUIET.wake, 0, 0, 0);
+  return d.getTime();
+}
+export const DAYTIME_KINDS = ['taste', 'burp', 'fridge'];
 
 export const TIME = { MIN, HOUR, DAY };

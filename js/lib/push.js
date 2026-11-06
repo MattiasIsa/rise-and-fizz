@@ -48,3 +48,16 @@ export async function testNotification() {
   const reg = await navigator.serviceWorker.ready;
   await reg.showNotification('Rise & Fizz', { body: 'Notifications are working. Bubbles incoming!', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
 }
+
+// Is this device set up to receive reminders? 'on' | 'off' | 'blocked' | 'install' | 'unsupported'
+export async function pushStatus() {
+  const s = pushSupport();
+  if (s.needsInstall) return 'install';
+  if (!s.hasApi || !s.configured) return 'unsupported';
+  if (s.permission === 'denied') return 'blocked';
+  if (s.permission !== 'granted') return 'off';
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    return (await reg.pushManager.getSubscription()) ? 'on' : 'off';
+  } catch { return 'off'; }
+}

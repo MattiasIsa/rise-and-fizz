@@ -9,4 +9,4 @@ How the front end is built. Read before touching js/, css/, index.html or sw.js.
   - `js/pages/*` holds one file per screen, and `js/components.js` holds the shared pieces.
 - **The demo store must keep working.** `createLocalStore` mirrors Supabase, and anything the database cascades has to be done by hand there.
 - **htm templates:** never split a tag across an `${...}` interpolation, because htm silently breaks.
-- **Service worker:** add new files to `SHELL` in `sw.js`, and **bump `VERSION` (rf-vN) on every deploy.**
+- **Service worker:** add new files to `SHELL` in `sw.js`, and **bump the version (rf-vN) in `sw.js` and `js/version.js` on every deploy.**
