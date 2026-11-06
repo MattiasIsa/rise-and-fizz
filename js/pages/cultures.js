@@ -40,7 +40,8 @@ export function lastFeed(c, events) {
   return events.find((e) => e.culture_id === c.id && e.type === 'feed' && e.data && Number(e.data.starter) > 0) || null;
 }
 
-export function FeedSheet({ c, onClose }) {
+// afterFeed: optional, runs after a feed is logged (e.g. to tick off a bake's "feed the starter" step).
+export function FeedSheet({ c, onClose, afterFeed }) {
   const s = useApp();
   const prev = lastFeed(c, s.cultureEvents);
   const pd = (prev && prev.data) || {};
@@ -103,7 +104,7 @@ export function FeedSheet({ c, onClose }) {
     ${scoby && html`<span class="muted">Note how Scooby looks. You can add details in a batch log too.</span>`}
     <button class=${'btn ' + (scoby ? 'fill-t' : 'fill-y')} onClick=${async () => {
       const data = scoby ? {} : { ratio: calc.feedRatio, ratioText: calc.actualText || ratioText, starter: calc.full.s, flourGrams: calc.full.f, water: calc.full.w, hydration: calc.hydration, temp, flour };
-      await feedCulture(c.id, data); onClose(); toast(scoby ? 'Check logged' : 'Fed! Next reminder is set.');
+      await feedCulture(c.id, data); if (afterFeed) await afterFeed(); onClose(); toast(scoby ? 'Check logged' : 'Fed! Next reminder is set.');
     }}>${scoby ? 'Log check' : 'Log feed'}</button>
     ${!scoby && html`<button class="btn" style="color:var(--muted)" onClick=${async () => { await updateCulture(c.id, { location: c.location === 'fridge' ? 'counter' : 'fridge', feed_every_hours: c.location === 'fridge' ? 12 : 168 }); onClose(); toast('Moved'); }}>Move to ${c.location === 'fridge' ? 'counter' : 'fridge'}</button>`}
   <//>`;

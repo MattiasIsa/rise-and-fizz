@@ -59,6 +59,9 @@ export function Home() {
   const done = async (r) => {
     const c = r.kind === 'feed' && r.culture_id && s.cultures.find((x) => x.id === r.culture_id);
     if (c) { setFeeding(c); return; }
+    const bake = r.kind === 'prefeed' && s.projects.find((x) => x.id === r.project_id);
+    const starter = bake && s.cultures.find((x) => x.id === bake.culture_id);
+    if (starter) { setFeeding(starter); return; }
     await completeReminder(r); toast('Nice. Logged it.');
   };
   const snooze = async (r) => { await snoozeReminder(r, 10); toast('Snoozed 10 min'); };

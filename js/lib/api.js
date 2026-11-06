@@ -123,13 +123,16 @@ async function realignDaytime() {
 }
 export function tidyReminders() { return run(realignDaytime); }
 
-export function createBread(spec, startAt) {
+// prefeed: optional { at, title, detail } reminder to feed the starter before mixing (from Plan backwards).
+export function createBread(spec, startAt, prefeed = null) {
   return run(async () => {
     const [p] = await store.insert('projects', {
       type: 'bread', name: spec.name || 'Sourdough', culture_id: spec.cultureId || null, status: 'active', stage: 'mix',
       specs: spec, started_at: new Date(startAt).toISOString()
     });
-    await store.insert('reminders', toReminders(p.id, breadSchedule(spec, startAt), spec.notify));
+    const steps = breadSchedule(spec, startAt);
+    if (prefeed) steps.unshift({ kind: 'prefeed', title: prefeed.title, detail: prefeed.detail || '', at: new Date(prefeed.at).toISOString(), idx: -1 });
+    await store.insert('reminders', toReminders(p.id, steps, spec.notify));
     await addLogRaw(p.id, 'Started bake', {});
     return p;
   });
@@ -295,6 +298,11 @@ async function feedCultureRaw(cultureId, data) {
   const now = new Date();
   await store.insert('culture_events', { culture_id: cultureId, type: c && c.kind === 'scoby' ? 'check' : 'feed', at: now.toISOString(), data: data || {} });
   if (!c || c.kind === 'scoby') return;
+  // A feed also ticks off any planned bake's "feed the starter" step that's due within the next few hours.
+  const bakes = state.projects.filter((p) => p.culture_id === cultureId && p.status === 'active').map((p) => p.id);
+  for (const r of state.reminders.filter((x) => x.kind === 'prefeed' && !x.done_at && bakes.includes(x.project_id) && new Date(x.due_at).getTime() < now.getTime() + 4 * TIME.HOUR)) {
+    await store.update('reminders', r.id, { done_at: now.toISOString() });
+  }
   for (const r of state.reminders.filter((x) => x.culture_id === cultureId && !x.done_at)) {
     await store.update('reminders', r.id, { done_at: now.toISOString(), skipped: true });
   }

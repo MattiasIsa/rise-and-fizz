@@ -4,6 +4,7 @@ import * as api from '../lib/api.js';
 import { BREAD_STAGES, breadNumbers, estimateRise, tasteWord, tasteColor, kombuchaActivity, f1Days, TIME } from '../lib/schedule.js';
 import { whenLabel, hhmm, dayLabel, shortDate, clock, duration, toLocalInput, compactDuration } from '../lib/format.js';
 import { projectView } from './home.js';
+import { FeedSheet } from './cultures.js';
 
 function PhotoThumb({ log }) {
   const data = log.data;
@@ -105,6 +106,47 @@ function FinishSheet({ project, open, onClose }) {
   <//>`;
 }
 
+// Kitchen mode: screen stays on, one huge countdown, one huge Done button for doughy hands.
+function KitchenMode({ p, v, next, folds, now, onDone, onExit }) {
+  const [lock, setLock] = useState('trying'); // 'on' | 'off' | 'trying'
+  useEffect(() => {
+    let sentinel = null, alive = true;
+    const grab = async () => {
+      try { if ('wakeLock' in navigator) { sentinel = await navigator.wakeLock.request('screen'); if (alive) setLock('on'); } else setLock('off'); }
+      catch { if (alive) setLock('off'); }
+    };
+    grab();
+    // Phones drop the lock when you switch apps; take it back when you return.
+    const again = () => { if (document.visibilityState === 'visible') grab(); };
+    document.addEventListener('visibilitychange', again);
+    const esc = (e) => { if (e.key === 'Escape') onExit(); };
+    window.addEventListener('keydown', esc);
+    return () => { alive = false; document.removeEventListener('visibilitychange', again); window.removeEventListener('keydown', esc); if (sentinel) sentinel.release().catch(() => {}); };
+  }, []);
+  const secs = next ? Math.round((new Date(next.due_at).getTime() - now) / 1000) : 0;
+  const big = secs >= 3600 ? `${Math.floor(secs / 3600)}:${String(Math.floor((secs % 3600) / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}` : secs > 0 ? clock(secs) : 'NOW';
+  const due = next && secs <= 0;
+  return html`
+    <div role="dialog" aria-modal="true" aria-label="Kitchen mode" style=${`position:fixed;inset:0;z-index:25;background:var(--ink);display:flex;flex-direction:column;padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));gap:14px;${due ? 'animation:glowY 1.4s ease-in-out infinite;' : ''}`}>
+      <div class="row between kicker">
+        <span>${p.name} · ${v.label}</span>
+        <button class="btn sm" style="color:var(--muted)" onClick=${onExit}>Exit</button>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;min-height:0">
+        ${next ? html`
+          <span class="kicker" style=${'font-size:16px;color:' + (due ? 'var(--yellow)' : 'var(--muted)')}>${due ? 'Now' : 'Next'}</span>
+          <span class="big-num" style="font-size:clamp(34px,9vw,64px);line-height:1;overflow-wrap:anywhere">${next.title.replace(/, set \d of \d/, '')}</span>
+          <span class="big-num" aria-live="polite" style=${`font-size:clamp(84px,30vw,220px);line-height:.9;color:${due ? 'var(--pink-text)' : 'var(--yellow)'};font-variant-numeric:tabular-nums;text-shadow:4px 3px 0 var(--pink)`}>${big}</span>
+          ${folds.length > 0 && html`<div class="row" style="gap:10px" aria-label=${`Folds done: ${folds.filter((f) => f.done_at).length} of ${folds.length}`}>${folds.map((f) => html`<span style=${`width:52px;height:16px;border-radius:3px;background:${f.done_at ? 'var(--yellow)' : 'var(--line-strong)'}`}></span>`)}</div>`}
+          ${v.inBulk && html`<span class="kicker" style="font-size:16px;color:var(--teal-text)">Risen about ${v.est.rise}% of ${v.est.target}%</span>`}
+          <span class="muted" style="max-width:520px">${next.detail}</span>` : html`
+          <span class="big-num" style="font-size:56px">All steps done</span><span class="muted">Out of the oven? Exit and rate it.</span>`}
+      </div>
+      ${next && html`<button class="btn fill-y" style="min-height:96px;font-size:24px;width:100%" onClick=${onDone}>Done</button>`}
+      <span class="small muted" style="text-align:center">${lock === 'on' ? 'Screen stays on while you are here.' : lock === 'off' ? "This browser can't keep the screen on. Tap now and then so it doesn't sleep." : ''}</span>
+    </div>`;
+}
+
 function BreadActive({ p, s, now }) {
   const v = projectView(p, s.reminders, now);
   const steps = v.steps.sort((a, b) => a.idx - b.idx);
@@ -117,7 +159,16 @@ function BreadActive({ p, s, now }) {
   const [rise, setRise] = useState('');
   const logs = s.logs.filter((l) => l.project_id === p.id);
   const culture = s.cultures.find((c) => c.id === p.culture_id);
+  const [kitchen, setKitchen] = useState(false);
+  const [feeding, setFeeding] = useState(null);
+  // The "feed the starter" step opens the feed calculator; every other step is ticked off.
+  const doNext = async () => {
+    if (next.kind === 'prefeed' && culture) { setFeeding(culture); return; }
+    await api.completeReminder(next); toast('Logged!');
+  };
   return html`
+    ${kitchen && html`<${KitchenMode} p=${p} v=${v} next=${next} folds=${folds} now=${now} onDone=${doNext} onExit=${() => setKitchen(false)} />`}
+    <${FeedSheet} key=${feeding ? feeding.id : 'none'} c=${feeding} onClose=${() => setFeeding(null)} />
     <div class="row" style="gap:16px;align-items:flex-end">
       <${Jar} type="bread" fill=${v.fill} activity=${v.activity} peak=${28 + v.est.target * 0.55} w=${110} h=${160} label=${`Dough risen about ${v.est.rise} percent`} />
       <div class="stack" style="gap:6px">
@@ -134,7 +185,8 @@ function BreadActive({ p, s, now }) {
         <span class="big-num" style="font-size:80px;color:var(--yellow);font-variant-numeric:tabular-nums;animation:glowY 2.6s ease-in-out infinite;border-radius:8px;padding:0 8px">${secs > 3600 ? hhmm(next.due_at) : secs > 0 ? clock(secs) : 'Now!'}</span>
         ${folds.length > 0 && html`<div class="row" aria-label=${`Folds done: ${foldsDone} of ${folds.length}`}>${folds.map((f) => html`<span style=${`width:40px;height:10px;background:${f.done_at ? 'var(--yellow)' : 'var(--line-strong)'};box-shadow:${f.done_at ? '0 0 10px rgba(255,232,0,.7)' : 'none'}`}></span>`)}</div>`}
         <span class="small muted">${next.detail}</span>
-        <button class="btn fill-y tilt-l" style="width:100%;min-height:56px" onClick=${async () => { await api.completeReminder(next); toast('Logged!'); }}>Done · ${next.title.replace(/, set \d of \d/, '')}</button>
+        <button class="btn fill-y tilt-l" style="width:100%;min-height:56px" onClick=${doNext}>Done · ${next.title.replace(/, set \d of \d/, '')}</button>
+        <button class="btn y" style="width:100%" onClick=${() => setKitchen(true)}>Kitchen mode · big timer, screen on</button>
       </div>` : html`
       <div class="card y stack" style="text-align:center;align-items:center"><span class="h2">Out of the oven?</span><span class="small muted">Rate it and add notes to your journal.</span></div>`}
 

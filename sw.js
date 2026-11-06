@@ -1,5 +1,5 @@
 // Rise & Fizz service worker: offline app shell + push notifications.
-const VERSION = 'rf-v18';
+const VERSION = 'rf-v19';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './css/app.css',
   './js/main.js', './js/config.js', './js/version.js', './js/html.js', './js/components.js',

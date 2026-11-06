@@ -81,6 +81,57 @@ export function breadSchedule(spec, startAt) {
   return steps.map((st, idx) => ({ ...st, idx, at: new Date(st.at).toISOString() }));
 }
 
+// ---------- Plan backwards: "I want bread at 10:00 Saturday" ----------
+// readyAt = when the loaf comes out of the oven. The bake step is BAKE_MIN before that.
+export const BAKE_MIN = 45;
+const AWAKE = { from: 7, to: 22 }; // hands-on steps should land between 07:00 and 22:00 (phone's local time)
+const asleep = (ms) => { const h = new Date(ms).getHours() + new Date(ms).getMinutes() / 60; return h < AWAKE.from || h >= AWAKE.to; };
+
+function fitStart(spec, bakeAt) {
+  let start = bakeAt - (new Date(breadSchedule(spec, 0).slice(-1)[0].at).getTime());
+  for (let i = 0; i < 3; i++) { // rounding inside breadSchedule can drift a few minutes; settle it
+    const bake = new Date(breadSchedule(spec, start).slice(-1)[0].at).getTime();
+    if (bake === bakeAt) break;
+    start += bakeAt - bake;
+  }
+  return start;
+}
+
+// opts: { peakHours } how long the chosen starter takes to peak after a feed (null = no starter feed step).
+export function planBackwards(spec, readyAt, opts = {}, now = Date.now()) {
+  const s = { ...BREAD_DEFAULTS, ...spec };
+  const ready = new Date(readyAt).getTime();
+  const bakeAt = ready - BAKE_MIN * MIN;
+  const build = (retardHours) => {
+    const sp = { ...s, retardHours };
+    const start = fitStart(sp, bakeAt);
+    const steps = breadSchedule(sp, start);
+    const addAt = new Date(steps.find((x) => x.kind === 'add').at).getTime();
+    const feedAt = opts.peakHours ? roundTime(addAt - opts.peakHours * HOUR) : null;
+    // Folds, shaping and fridge need hands. So does the feed. Baking is the wake-up you asked for.
+    const handsOn = [feedAt, ...steps.filter((x) => x.kind !== 'bake').map((x) => new Date(x.at).getTime())].filter((x) => x != null);
+    const night = handsOn.filter(asleep).length;
+    return { retardHours, start, steps, feedAt, night, first: Math.min(...handsOn) };
+  };
+  const plan = build(Number(s.retardHours) || 12);
+  const warnings = [];
+  if (plan.first < now) warnings.push({ kind: 'late', text: 'That is too soon to fit everything in. Pick a later time, or shorten the fridge time.' });
+  if (plan.night) warnings.push({ kind: 'night', text: `${plan.night} hands-on ${plan.night === 1 ? 'step lands' : 'steps land'} between 22:00 and 07:00.` });
+
+  // Suggest the fridge time closest to yours (8–48 h) that keeps every hands-on step in the daytime.
+  let better = null;
+  if (plan.night || plan.first < now) {
+    for (let d = 0.5; d <= 40 && !better; d += 0.5) {
+      for (const h of [plan.retardHours + d, plan.retardHours - d]) {
+        if (h < 8 || h > 48) continue;
+        const alt = build(h);
+        if (!alt.night && alt.first >= now) { better = alt; break; }
+      }
+    }
+  }
+  return { ...plan, ready, bakeAt, warnings, better: better ? { retardHours: better.retardHours, start: better.start, feedAt: better.feedAt } : null };
+}
+
 export const BREAD_STAGES = [
   { key: 'mix', label: 'Mix', kinds: ['mix', 'add'] },
   { key: 'folds', label: 'Folds', kinds: ['fold'] },
@@ -95,7 +146,7 @@ export function breadStage(steps) {
   const sorted = [...steps].sort((a, b) => (a.idx ?? 0) - (b.idx ?? 0));
   const next = sorted.find((s) => !s.done_at);
   if (!next) return 'done';
-  if (next.kind === 'mix' || next.kind === 'add') return 'mix';
+  if (next.kind === 'mix' || next.kind === 'add' || next.kind === 'prefeed') return 'mix';
   if (next.kind === 'fold') return 'folds';
   if (next.kind === 'shape') return 'bulk';
   if (next.kind === 'fridge') return 'shape';

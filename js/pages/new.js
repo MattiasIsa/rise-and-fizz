@@ -1,7 +1,8 @@
 import { html, useState, useApp, go, toast } from '../html.js';
 import { Blobs } from '../components.js';
 import { createBread, createKombucha, updateSpecs } from '../lib/api.js';
-import { BREAD_DEFAULTS, KOMBUCHA_DEFAULTS, breadNumbers, bulkHours, breadSchedule, kombuchaRecipe, kombuchaSchedule, f1Days } from '../lib/schedule.js';
+import { BREAD_DEFAULTS, KOMBUCHA_DEFAULTS, breadNumbers, bulkHours, breadSchedule, kombuchaRecipe, kombuchaSchedule, f1Days, planBackwards, starterPeakHours, TIME } from '../lib/schedule.js';
+import { cultureStats } from '../lib/culturestats.js';
 import { hhmm, dayLabel, toLocalInput } from '../lib/format.js';
 
 export function NewChooser() {
@@ -44,18 +45,37 @@ export function BreadForm({ from, edit, culture }) {
   const starters = s.cultures.filter((c) => c.kind === 'starter');
   const [spec, setSpec] = useState(() => ({ ...BREAD_DEFAULTS, cultureId: starters[0] ? starters[0].id : null, notify: true, ...(base ? base.specs : {}), ...(from && !edit ? { name: base.specs.name } : {}), ...(culture ? { cultureId: culture } : {}) }));
   const [start, setStart] = useState(() => toLocalInput(edit ? edit.started_at : new Date()));
+  const [mode, setMode] = useState('start'); // 'start' = start mixing at…, 'ready' = bread ready by…
+  const [ready, setReady] = useState(() => { const d = new Date(Date.now() + TIME.DAY); d.setHours(10, 0, 0, 0); if (d - Date.now() < 30 * TIME.HOUR) d.setDate(d.getDate() + 1); return toLocalInput(d); });
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setSpec({ ...spec, [k]: e.target.type === 'number' ? num(e.target.value) : e.target.value });
   const setFlour = (i, k) => (e) => { const flours = spec.flours.map((f, j) => (j === i ? { ...f, [k]: k === 'g' ? num(e.target.value) : e.target.value } : f)); setSpec({ ...spec, flours }); };
   const n = breadNumbers(spec);
-  const steps = breadSchedule(spec, new Date(start));
   const filled = (v) => v !== '' && v != null && !Number.isNaN(Number(v));
   const valid = spec.flours.every((f) => filled(f.g)) && ['water', 'starter', 'salt', 'temp', 'autolyseMin', 'folds', 'foldEveryMin', 'retardHours', 'targetRise'].every((k) => filled(spec[k]));
+
+  // Plan backwards from "ready by". The starter's own logged peaks win over the formula.
+  const starter = s.cultures.find((c) => c.id === spec.cultureId && c.kind === 'starter');
+  let peak = null, peakFrom = '';
+  if (starter) {
+    const st = cultureStats(starter, s.cultureEvents, s.projects);
+    if (st.avgPeak) { peak = st.avgPeak; peakFrom = `${starter.name}'s logged peaks`; }
+    else { peak = starterPeakHours(spec.temp, st.avgRatio || 2); peakFrom = `a ${spec.temp} °C kitchen`; }
+  }
+  const readyOk = ready && !isNaN(new Date(ready).getTime());
+  const plan = !edit && mode === 'ready' && valid && readyOk ? planBackwards(spec, new Date(ready), { peakHours: starter && starter.location !== 'fridge' ? peak : starter ? peak + 12 : null }) : null;
+  const late = plan && plan.warnings.some((w) => w.kind === 'late');
+  const steps = valid ? (plan ? plan.steps : breadSchedule(spec, new Date(start))) : [];
+  const shown = plan && plan.feedAt ? [{ kind: 'prefeed', title: `Feed ${starter.name}`, detail: starter.location === 'fridge' ? `Take ${starter.name} out of the fridge and feed. Should peak in about ${Math.round(peak + 12)} h, waking up included.` : `Should peak in about ${peak.toFixed(1)} h (from ${peakFrom}), right when you add it.`, at: new Date(plan.feedAt).toISOString() }, ...steps] : steps;
 
   const save = async () => {
     setBusy(true);
     try {
       if (edit) { const done = edit.status !== 'active'; await updateSpecs(edit, spec, !done); toast('Saved'); go((done ? '/history/' : '/p/') + edit.id); }
+      else if (plan) {
+        const p = await createBread({ ...spec, readyBy: new Date(ready).toISOString() }, new Date(plan.start), plan.feedAt ? { at: plan.feedAt, title: `Feed ${starter.name} for this bake`, detail: `So it peaks when you add it at ${hhmm(plan.steps[1].at)}` } : null);
+        toast('Planned! We\'ll ping you when it\'s time.'); go('/p/' + p.id);
+      }
       else { const p = await createBread(spec, new Date(start)); toast('Bake started. We\'ll ping you!'); go('/p/' + p.id); }
     } catch (e) { toast('Could not save: ' + e.message); } finally { setBusy(false); }
   };
@@ -113,11 +133,29 @@ export function BreadForm({ from, edit, culture }) {
         </div>
       </details>
 
-      ${!edit && html`<div class="field"><label for="start">Start mixing at</label><input id="start" class="input" type="datetime-local" value=${start} onInput=${(e) => setStart(e.target.value)} /></div>`}
+      ${!edit && html`
+        <div class="row wrap" role="group" aria-label="Plan from">
+          <button type="button" class=${'chip' + (mode === 'start' ? ' on' : '')} aria-pressed=${mode === 'start'} onClick=${() => setMode('start')}>Start now or at…</button>
+          <button type="button" class=${'chip' + (mode === 'ready' ? ' on' : '')} aria-pressed=${mode === 'ready'} onClick=${() => setMode('ready')}>Bread ready by…</button>
+        </div>
+        ${mode === 'start' ? html`<div class="field"><label for="start">Start mixing at</label><input id="start" class="input" type="datetime-local" value=${start} onInput=${(e) => setStart(e.target.value)} /></div>` : html`
+          <div class="field"><label for="ready">Out of the oven at</label><input id="ready" class="input" type="datetime-local" value=${ready} onInput=${(e) => setReady(e.target.value)} style="font-size:20px" /></div>
+          ${plan && html`
+            <div class=${'slab tilt-l stack ' + (late ? 'p' : 'y')} style="gap:4px">
+              <span class="kicker">${late ? 'Too tight' : 'Your plan'}</span>
+              ${plan.feedAt && html`<span class="big-num" style="font-size:26px">Feed ${starter.name} ${dayLabel(plan.feedAt).toLowerCase()} ${hhmm(plan.feedAt)}</span>`}
+              <span class="big-num" style=${'font-size:' + (plan.feedAt ? '22px' : '30px')}>Mix ${dayLabel(plan.start).toLowerCase()} ${hhmm(plan.start)}</span>
+              <span style="font-size:14px;font-weight:500">Bake goes in at ${hhmm(plan.bakeAt)}, out at ${hhmm(plan.ready)}. ${plan.retardHours} h in the fridge.</span>
+            </div>
+            ${plan.warnings.map((w) => html`<div class="banner">${w.text}</div>`)}
+            ${plan.better && html`
+              <button class="btn y" onClick=${() => setSpec({ ...spec, retardHours: plan.better.retardHours })}>Use ${plan.better.retardHours} h in the fridge instead (mix ${dayLabel(plan.better.start).toLowerCase()} ${hhmm(plan.better.start)})</button>`}
+            ${!starter && html`<span class="small muted">Pick a starter above and we'll tell you when to feed it too.</span>`}`}
+          ${!valid && html`<span class="small muted">Fill in every number and the plan appears.</span>`}`}`}
 
       <div class="stack" style="gap:8px">
         <div class="row between"><span class="kicker">Your schedule</span><span class="small muted">You can move any step later</span></div>
-        ${steps.map((st) => html`<div class="step" style=${'border-color:' + (st.kind === 'fold' ? 'rgba(255,46,154,.55)' : st.kind === 'fridge' ? 'rgba(0,194,184,.55)' : 'rgba(255,232,0,.45)')}>
+        ${shown.map((st) => html`<div class="step" style=${'border-color:' + (st.kind === 'fold' ? 'rgba(255,46,154,.55)' : st.kind === 'fridge' ? 'rgba(0,194,184,.55)' : 'rgba(255,232,0,.45)')}>
           <span class="when" style=${'color:' + (st.kind === 'fold' ? 'var(--pink-text)' : st.kind === 'fridge' ? 'var(--teal-text)' : 'var(--yellow)')}>${fmtStep(st.at)}</span>
           <span class="stack" style="gap:2px"><span class="title" style="font-weight:700">${st.title}</span><span class="small muted">${st.detail}</span></span>
         </div>`)}
@@ -129,7 +167,7 @@ export function BreadForm({ from, edit, culture }) {
       </label>
 
       ${!valid && html`<span class="small" style="color:var(--pink-text)">Fill in every number to continue.</span>`}
-      <button class="btn fill-y block" disabled=${busy || !valid} onClick=${save}>${busy ? 'Saving…' : edit ? 'Save changes' : 'Start bake →'}</button>
+      <button class="btn fill-y block" disabled=${busy || !valid || late || (mode === 'ready' && !edit && !plan)} onClick=${save}>${busy ? 'Saving…' : edit ? 'Save changes' : plan ? 'Plan this bake →' : 'Start bake →'}</button>
     </div>`;
 }
 
