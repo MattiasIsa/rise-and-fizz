@@ -28,5 +28,6 @@ Colour, type, texture, layout. Read before any visual change.
 
 ## Layout
 - Phone: bottom nav, 16px side gutter, no horizontal scroll, touch targets at least 44px.
+- Never put `overflow: hidden` (or `overflow-x: hidden`) on `html` or `body`. On iPhone it makes the fixed bottom bar drift while scrolling. Clip sideways overflow on `#app` and `.main` with `overflow-x: clip` instead, and keep `backdrop-filter` off fixed bars.
 - At 900px and wider, the nav becomes a sticky sidebar.
 - Sheets (`Sheet`) slide up for quick actions such as feeding, logging or confirming, so you don't leave the page.

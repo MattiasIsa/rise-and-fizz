@@ -32,7 +32,8 @@ body {
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
-  overflow-x: hidden;
+  /* No rubber-band bounce dragging the fixed bottom bar around on iPhone. */
+  overscroll-behavior-y: none;
 }
 a { color: var(--pink-text); }
 a:hover { color: #fff; }
@@ -42,7 +43,8 @@ button { cursor: pointer; }
 
 .grain { position: fixed; inset: 0; width: 100%; height: 100%; opacity: 0.28; mix-blend-mode: screen; pointer-events: none; z-index: 0; }
 .boot { min-height: 100vh; display: grid; place-items: center; font-family: var(--display); font-size: 40px; font-weight: 900; }
-html { overflow-x: hidden; }
+/* Never put overflow hidden on html/body: iPhone Safari then scrolls the body as its own box and the
+   fixed bottom bar drifts up while scrolling. #app and .main clip sideways overflow instead. */
 /* Decorative blobs may hang off the edge; clip them so the page is never wider than the screen
    (otherwise phones zoom out to fit). "clip" keeps sticky positioning working. */
 #app { position: relative; z-index: 1; overflow-x: clip; max-width: 100vw; }
@@ -160,7 +162,7 @@ input[type=checkbox] { width: 24px; height: 24px; accent-color: var(--yellow); f
 .bars > span { background: var(--teal); display: block; min-height: 4px; }
 
 /* Nav */
-.nav { position: fixed; left: 0; right: 0; bottom: 0; height: calc(var(--nav-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: rgba(16, 18, 51, 0.96); border-top: 2px solid var(--line); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; justify-items: center; font-family: var(--mono); font-size: 11px; font-weight: 700; z-index: 10; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.nav { position: fixed; left: 0; right: 0; bottom: 0; height: calc(var(--nav-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: rgba(16, 18, 51, 0.96); border-top: 2px solid var(--line); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; justify-items: center; font-family: var(--mono); font-size: 11px; font-weight: 700; z-index: 10; transform: translateZ(0); }
 .nav a { color: var(--muted); text-decoration: none; padding: 14px 4px; }
 .nav a.on { color: var(--yellow); }
 .nav .plus { width: 58px; height: 58px; padding: 0; border-radius: 6px; background: var(--yellow); color: var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 36px; font-weight: 900; transform: rotate(-4deg); box-shadow: 0 0 24px rgba(255, 232, 0, 0.6); }
